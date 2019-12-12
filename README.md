@@ -5,7 +5,18 @@
 
 A maptalks Layer to render with THREE.js
 
-![screenshot](https://cloud.githubusercontent.com/assets/13678919/26443408/db7afe66-416a-11e7-951b-0f99beaadb5a.jpg)
+<!-- ![screenshot](https://cloud.githubusercontent.com/assets/13678919/26443408/db7afe66-416a-11e7-951b-0f99beaadb5a.jpg) -->
+![points](./images/points1.png)
+![points](./images/points.png)
+![bars](./images/bars.png)
+![lines](./images/lines.png)
+![extrudepolygons](./images/extrudepolygons.png)
+![extrudelinetrial](./images/extrudelinetrial.png)
+![bloom](./images/bloom.png)
+![migration](./images/migration.png)
+![flight-path](./images/flight-path.png)
+![ny-subway](./images/ny-subway.png)
+
 ## Examples
 
 * [Extrude Buildings](https://maptalks.github.io/maptalks.three/demo/buildings.html).
@@ -78,6 +89,69 @@ threeLayer.prepareToDraw = function (gl, scene, camera) {
 
 threeLayer.addTo(map);
 ```
+
+## How to customize your own graphics
+
+BaseObject is the base class of graphics provided by us. If you need to customize your own graphics, please extend it based on it
+
+such as examples we provide [circle](./demo/custom-circle.html) ,[fatline](./demo/custom-fatline.html),[linetrip](./demo/custom-linetrip.html),[linetrail](./demo/custom-linetrail.html)
+
+
+```html
+<script type="text/javascript" src="https://unpkg.com/three@0.97.0/build/three.min.js"></script>
+<script type="text/javascript" src="https://unpkg.com/maptalks/dist/maptalks.min.js"></script>
+<script type="text/javascript" src="https://unpkg.com/maptalks.three/dist/maptalks.three.js"></script>
+<script>
+  class Xxxxx extends maptalks.BaseObject{
+    
+    constructor(...){
+        options = maptalks.Util.extend({}, OPTIONS, options, { layer, coordinate });
+        super();
+        this._initOptions(options);
+
+        ...
+
+        this._createMesh(geometry, material);
+        //this._createGroup();
+        //this._createLine(geometry,material);
+    }
+
+    ....
+   
+  }
+</script>
+```
+
+
+```js
+    import * as THREE from 'three';
+    import * as maptalks from 'maptalks';
+    import { ThreeLayer , BaseObject } from 'maptalks.three';
+
+    class Xxxxx extends BaseObject{
+    
+        constructor(...){
+            options = maptalks.Util.extend({}, OPTIONS, options, { layer, coordinate });
+            super();
+            this._initOptions(options);
+
+            ...
+
+            this._createMesh(geometry, material);
+            //this._createGroup();
+            //this._createLine(geometry,material);
+        }
+
+    ....
+   
+  }
+
+```
+
+The value of BaseObject's object3d attribute is three.js. You can perform relevant operations on it, such as scale, position, rotation, etc
+
+In theory, you can customize any graphics component you need.
+Of course, it requires you to be familiar with three.js
 
 ## Supported Browsers
 
