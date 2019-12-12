@@ -6,16 +6,16 @@
 A maptalks Layer to render with THREE.js
 
 <!-- ![screenshot](https://cloud.githubusercontent.com/assets/13678919/26443408/db7afe66-416a-11e7-951b-0f99beaadb5a.jpg) -->
-![points](./images/points1.png)
-![points](./images/points.png)
-![bars](./images/bars.png)
-![lines](./images/lines.png)
-![extrudepolygons](./images/extrudepolygons.png)
-![extrudelinetrial](./images/extrudelinetrial.png)
-![bloom](./images/bloom.png)
-![migration](./images/migration.png)
-![flight-path](./images/flight-path.png)
-![ny-subway](./images/ny-subway.png)
+![points](http://helpful-spiders.surge.sh/images/points1.jpg)
+![points](http://helpful-spiders.surge.sh/images/points.jpg)
+![bars](http://helpful-spiders.surge.sh/images/bars.jpg)
+![lines](http://helpful-spiders.surge.sh/images/lines.jpg)
+![extrudepolygons](http://helpful-spiders.surge.sh/images/extrudepolygons.jpg)
+![extrudelinetrial](http://helpful-spiders.surge.sh/images/extrudelinetrial.jpg)
+![bloom](http://helpful-spiders.surge.sh/images/bloom.jpg)
+![migration](http://helpful-spiders.surge.sh/images/migration.jpg)
+![flight-path](http://helpful-spiders.surge.sh/images/flight-path.jpg)
+![ny-subway](http://helpful-spiders.surge.sh/images/ny-subway.jpg)
 
 ## Examples
 
