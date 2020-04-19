@@ -1,8 +1,8 @@
 
 /**
- * 
+ *
  * this is for test
- * 
+ *
  */
 
 const PI = Math.PI / 180;
@@ -144,6 +144,8 @@ function lineSlice(cs, lineChunkLength = 10) {
 function getLinePosition(lineString, layer) {
     const positions = [];
     const positionsV = [];
+    const globalPositions = [];
+    const globalPositionsV = [];
     if (Array.isArray(lineString) && lineString[0] instanceof THREE.Vector3) {
         for (let i = 0, len = lineString.length; i < len; i++) {
             const v = lineString[i];
@@ -161,12 +163,17 @@ function getLinePosition(lineString, layer) {
             if (Array.isArray(coordinate)) {
                 coordinate = new maptalks.Coordinate(coordinate);
             }
-            const v = layer.coordinateToVector3(coordinate, z).sub(centerPt);
+            let v = layer.coordinateToVector3(coordinate, z);
+            globalPositions.push(v.x, v.y, v.z);
+            globalPositionsV.push(v);
+            v = v.clone().sub(centerPt);
             positions.push(v.x, v.y, v.z);
             positionsV.push(v);
         }
     }
     return {
+        globalPositions: globalPositions,
+        globalPositionsV: globalPositionsV,
         positions: positions,
         positionsV: positionsV
     }

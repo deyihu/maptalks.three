@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>line test</title>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/dat.gui@0.7.6/build/dat.gui.min.js"></script>
+    <link type="text/css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.css">
+    <script type="text/javascript" src="./js/maptalks.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/three@0.97.0/build/three.min.js"></script>
+    <script type="text/javascript"
+        src="    https://cdn.jsdelivr.net/npm/three.meshline@1.2.0/src/THREE.MeshLine.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/lz-string@1.4.4/libs/lz-string.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/maptalks.three/dist/maptalks.three.js"></script>
+    <script type="text/javascript" src="./js/geoutil.js"></script>
+    <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/three@0.97.0/examples/js/libs/stats.min.js"></script>
+    <style>
+        html,
+        body {
+            margin: 0px;
+            height: 100%;
+            width: 100%;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <script>
+
+        var map = new maptalks.Map("map", {
+            center: [13.416935229170008, 52.529564137540376],
+            zoom: 15,
+            pitch: 70,
+            bearing: 180,
+
+            centerCross: true,
+            doubleClickZoom: false,
+            baseLayer: new maptalks.TileLayer('tile', {
+                urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+                subdomains: ['a', 'b', 'c', 'd'],
+                attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+            })
+        });
+
+
+
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            forceRenderOnMoving: true,
+            forceRenderOnRotating: true,
+
+            // animation: true
+        });
+
+
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+            stats = new Stats();
+            stats.domElement.style.zIndex = 100;
+            document.getElementById('map').appendChild(stats.domElement);
+
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+
+
+            addLines();
+        };
+        threeLayer.addTo(map);
+
+
+        var lines;
+        const size = map.getSize();
+        var resolution = new THREE.Vector2(size.width, size.height);
+        var material = new MeshLineMaterial({
+            color: 0x00ffff,
+            sizeAttenuation: false,
+            lineWidth: 10,
+            resolution
+        });
+        var highlightmaterial = new THREE.LineDashedMaterial({
+            linewidth: 1,
+            color: 'yellow',
+            // opacity: 0.8,
+            transparent: true,
+            dashSize: 0.05,
+            gapSize: 0.05
+        });
+        function addLines() {
+            fetch('./data/berlin-roads.txt').then(function (res) {
+                return res.text();
+            }).then(function (geojson) {
+                geojson = LZString.decompressFromBase64(geojson);
+                geojson = JSON.parse(geojson);
+                // var material = new THREE.LineDashedMaterial({
+                //     linewidth: 1,
+                //     color: 0x00ffff,
+                //     // opacity: 0.8,
+                //     transparent: true,
+                //     dashSize: 0.1,
+                //     gapSize: 0.1
+                // });
+
+                var lineStrings = maptalks.GeoJSON.toGeometry(geojson);
+                var timer = 'generate line time';
+                console.time(timer);
+                lines = lineStrings.slice(0, 2000).map(function (lineString) {
+                    // var colors = [];
+
+                    // var coordinates = lineString.getCoordinates();
+                    // for (var i = 0, len = coordinates.length; i < len; i++) {
+                    //     var color = new THREE.Color('red');
+                    //     color.setHSL(i / len, 1.0, 0.5);
+                    //     colors.push(color);
+                    // }
+                    var line = new PixelLine(lineString, { altitude: 20, interactive: false }, material, threeLayer);
+
+                    // //tooltip test
+                    // line.setToolTip(line.getId(), {
+                    //     showTimeout: 0,
+                    //     eventsPropagation: true,
+                    //     dx: 10
+                    // });
+
+
+                    // //infowindow test
+                    // line.setInfoWindow({
+                    //     content: 'hello world,id:' + line.getId(),
+                    //     title: 'message',
+                    //     animationDuration: 0,
+                    //     autoOpenOn: false
+                    // });
+
+
+                    // //event test
+                    // ['click', 'mouseout', 'mouseover', 'mousedown', 'mouseup', 'dblclick', 'contextmenu'].forEach(function (eventType) {
+                    //     line.on(eventType, function (e) {
+                    //         console.log(e.type, e);
+                    //         // console.log(this);
+                    //         if (e.type === 'mouseout') {
+                    //             this.setSymbol(material);
+                    //         }
+                    //         if (e.type === 'mouseover') {
+                    //             this.setSymbol(highlightmaterial);
+                    //         }
+                    //     });
+                    // });
+                    return line;
+                });
+                console.log('lines.length:', lines.length);
+                console.timeEnd(timer);
+                threeLayer.addMesh(lines);
+                animation();
+                // initGui();
+                // threeLayer.config('animation', true);
+            })
+        }
+        function animation() {
+            // layer animation support Skipping frames
+            threeLayer._needsUpdate = !threeLayer._needsUpdate;
+            if (threeLayer._needsUpdate) {
+                threeLayer._renderer.clearCanvas();
+                threeLayer.renderScene();
+            }
+            stats.update();
+            requestAnimationFrame(animation);
+        }
+
+
+        function initGui() {
+            var params = {
+                add: true,
+                color: 0x00ffff,
+                show: true,
+                opacity: 1,
+                altitude: 0
+            };
+            var gui = new dat.GUI();
+            gui.add(params, 'add').onChange(function () {
+                if (params.add) {
+                    threeLayer.addMesh(lines);
+                } else {
+                    threeLayer.removeMesh(lines);
+                }
+            });
+            gui.addColor(params, 'color').name('line color').onChange(function () {
+                material.color.set(params.color);
+                lines.forEach(function (mesh) {
+                    mesh.setSymbol(material);
+                });
+            });
+            gui.add(params, 'opacity', 0, 1).onChange(function () {
+                material.opacity = params.opacity;
+                lines.forEach(function (mesh) {
+                    mesh.setSymbol(material);
+                });
+            });
+            gui.add(params, 'show').onChange(function () {
+                lines.forEach(function (mesh) {
+                    if (params.show) {
+                        mesh.show();
+                    } else {
+                        mesh.hide();
+                    }
+                });
+            });
+            gui.add(params, 'altitude', 0, 300).onChange(function () {
+                lines.forEach(function (mesh) {
+                    mesh.setAltitude(params.altitude);
+                });
+            });
+        }
+
+
+        const OPTIONS = {
+            altitude: 0
+        }
+        class PixelLine extends maptalks.BaseObject {
+            constructor(lineString, options, material, layer) {
+
+                super();
+                //Initialize internal configuration
+                // https://github.com/maptalks/maptalks.three/blob/1e45f5238f500225ada1deb09b8bab18c1b52cf2/src/BaseObject.js#L135
+
+
+                const center = lineString.getCenter();
+                const { positions, globalPositionsV } = getLinePosition(lineString, layer, center);
+                options = maptalks.Util.extend({}, OPTIONS, options, { layer, lineString, positions: globalPositionsV });
+                this._initOptions(options);
+
+                var line = new MeshLine();
+                line.setGeometry(positions);
+                const { altitude } = options;
+                //generate geometry
+
+
+
+                //Initialize internal object3d
+                // https://github.com/maptalks/maptalks.three/blob/1e45f5238f500225ada1deb09b8bab18c1b52cf2/src/BaseObject.js#L140
+                this._createMesh(line.geometry, material);
+
+                //set object3d position
+                const z = layer.distanceToVector3(altitude, altitude).x;
+                const position = layer.coordinateToVector3(center, z);
+                this.getObject3d().position.copy(position);
+                this._init();
+
+            }
+            _init() {
+                const map = this.getMap();
+                function mapResize() {
+                    const size = map.getSize();
+                    const { width, height } = size;
+                    this.getObject3d().material.resolution.x = width;
+                    this.getObject3d().material.resolution.y = height;
+                    this.getObject3d().material.needsUpdate = true;
+                }
+                this.on('add', () => {
+                    map.on('resize', mapResize, this);
+                    this._positions2Pixels();
+                    map.on('zoomstart zooming zoomend movestart moving moveend pitch rotate', this._positions2Pixels, this);
+                });
+                this.on('remove', () => {
+                    map.off('resize', mapResize, this);
+                    map.off('zoomstart zooming zoomend movestart moving moveend pitch rotate', this._positions2Pixels, this);
+                });
+
+            }
+
+            _positions2Pixels() {
+                // const timer = '_positions2Pixels';
+                // console.time(timer);
+                const layer = this.getLayer(), size = this.getMap().getSize(),
+                    camera = this.getLayer().getCamera();
+                const { positions, altitude } = this.getOptions();
+                const ps = [];
+                const z = layer.distanceToVector3(altitude, altitude).x;
+                for (let i = 0, len = positions.length; i < len; i++) {
+                    const v = positions[i].clone();
+                    v.z = z;
+                    ps.push(v);
+                }
+
+                const pixels = simplepath.vectors2Pixel(ps, size, camera, altitude, layer);
+                this.pixels = pixels;
+                // console.timeEnd(timer);
+            }
+
+            identify(coordinate) {
+                const layer = this.getLayer(), size = this.getMap().getSize();
+                let canvas = layer._testCanvas;
+                if (!canvas) {
+                    canvas = layer._testCanvas = document.createElement('canvas');
+                }
+                canvas.width = size.width;
+                canvas.height = size.height;
+                const context = canvas.getContext('2d');
+
+                const pixels = this.pixels;
+                const lineWidth = this.getObject3d().material.lineWidth + 3;
+                simplepath.draw(context, pixels, 'LineString', { lineWidth: lineWidth });
+                const pixel = this.getMap().coordToContainerPoint(coordinate);
+                if (context.isPointInStroke(pixel.x, pixel.y)) {
+                    return true;
+                }
+            }
+        }
+
+
+        var simplepath = {
+
+            positionsConvert: function (worldPoints, altitude = 0, layer) {
+                const vectors = [];
+                for (let i = 0, len = worldPoints.length; i < len; i += 3) {
+                    let x = worldPoints[i], y = worldPoints[i + 1], z = worldPoints[i + 2];
+                    if (altitude > 0) {
+                        z += layer.distanceToVector3(altitude, altitude).x;
+                    }
+                    vectors.push(new THREE.Vector3(x, y, z));
+                }
+                return vectors;
+            },
+
+            vectors2Pixel: function (worldPoints, size, camera, altitude = 0, layer) {
+                if (!(worldPoints[0] instanceof THREE.Vector3)) {
+                    worldPoints = simplepath.positionsConvert(worldPoints, altitude, layer);
+                }
+                const pixels = worldPoints.map(worldPoint => {
+                    return simplepath.vector2Pixel(worldPoint, size, camera);
+                })
+                return pixels;
+
+            },
+
+            vector2Pixel: function (world_vector, size, camera) {
+                const vector = world_vector.project(camera);
+                const halfWidth = size.width / 2;
+                const halfHeight = size.height / 2;
+                const result = {
+                    x: Math.round(vector.x * halfWidth + halfWidth),
+                    y: Math.round(-vector.y * halfHeight + halfHeight)
+                };
+                return result;
+            },
+
+
+            draw: function (context, data, type, options) {
+                options = options || {};
+                for (var key in options) {
+                    context[key] = options[key];
+                }
+
+                switch (type) {
+                    case 'Circle': {
+                        // var size = options._size || options.size || 20;
+                        // let x = data.x || data[0],
+                        //     y = data.y || data[1];
+                        // context.beginPath();
+                        // context.moveTo(x, y);
+                        // context.arc(x, y, size, 0, Math.PI * 2);
+                        // context.fill();
+                        // context.restore();
+                        break;
+                    }
+                    case 'LineString': {
+                        context.beginPath();
+                        for (var j = 0; j < data.length; j++) {
+                            var _xy = data[j];
+                            let x = _xy.x || _xy[0],
+                                y = _xy.y || _xy[1];
+                            if (j == 0) {
+                                context.moveTo(x, y);
+                            } else {
+                                context.lineTo(x, y);
+                            }
+                            // if(j===data.length-1){
+                            //     context.lineTo(data[0].x,data[0].y);
+                            // }
+                        }
+                        // context.closePath();
+                        context.stroke();
+                        context.restore();
+                        break;
+                    }
+                    default: {
+                        console.error('type' + type + 'is not support now!');
+                    }
+                }
+            }
+        };
+
+
+        // function getLinePosition(lineString, layer, center) {
+        //     const positions = [];
+        //     const positionsV = [];
+        //     if (Array.isArray(lineString) && lineString[0] instanceof THREE.Vector3) {
+        //         for (let i = 0, len = lineString.length; i < len; i++) {
+        //             const v = lineString[i];
+        //             positions.push(v.x, v.y, v.z);
+        //             positionsV.push(v);
+        //         }
+        //     } else {
+        //         if (Array.isArray(lineString)) {
+        //             lineString = new maptalks.LineString(lineString);
+        //         }
+        //         const z = 0;
+        //         //support geojson
+        //         let coordinates, cent;
+
+        //         coordinates = lineString.getCoordinates();
+        //         cent = lineString.getCenter();
+
+        //         const centerPt = layer.coordinateToVector3(center || cent);
+        //         for (let i = 0, len = coordinates.length; i < len; i++) {
+        //             let coordinate = coordinates[i];
+        //             if (Array.isArray(coordinate)) {
+        //                 coordinate = new maptalks.Coordinate(coordinate);
+        //             }
+        //             const v = layer.coordinateToVector3(coordinate, z).sub(centerPt);
+        //             positions.push(v.x, v.y, v.z);
+        //             positionsV.push(v);
+        //         }
+        //     }
+        //     return {
+        //         positions: positions,
+        //         positionsV: positionsV
+        //     };
+        // }
+
+
+    </script>
+</body>
+
+</html>
