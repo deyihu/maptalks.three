@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>fatline test,baseobject identify test</title>
+    <!-- <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/dat.gui@0.7.6/build/dat.gui.min.js"></script> -->
+    <link type="text/css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.css">
+    <script type="text/javascript" src="./js/maptalks.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/three@0.97.0/build/three.min.js"></script>
+    <!--fatline script-->
+    <!-- https://threejs.org/examples/#webgl_lines_fat -->
+    <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/three@0.97.0/examples/js/lines/LineSegmentsGeometry.js"></script>
+    <script type="text/javascript" src="./js/LineGeometry.js"></script>
+    <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/three@0.97.0/examples/js/lines/WireframeGeometry2.js"></script>
+    <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/three@0.97.0/examples/js/lines/LineMaterial.js"></script>
+    <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/three@0.97.0/examples/js/lines/LineSegments2.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/three@0.97.0/examples/js/lines/Line2.js"></script>
+    <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/three@0.97.0/examples/js/lines/Wireframe.js"></script>
+    <!---->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/lz-string@1.4.4/libs/lz-string.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/maptalks.three/dist/maptalks.three.js"></script>
+    <script type="text/javascript" src="js/geoutil.js"></script>
+    <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/three@0.97.0/examples/js/libs/stats.min.js"></script>
+    <style>
+        html,
+        body {
+            margin: 0px;
+            height: 100%;
+            width: 100%;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <script>
+
+        var map = new maptalks.Map("map", {
+            center: [13.416935229170008, 52.529564137540376],
+            zoom: 15,
+            pitch: 70,
+            // bearing: 180,
+
+            centerCross: true,
+            doubleClickZoom: false,
+            baseLayer: new maptalks.TileLayer('tile', {
+                urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+                subdomains: ['a', 'b', 'c', 'd'],
+                attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+            })
+        });
+
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            forceRenderOnMoving: true,
+            forceRenderOnRotating: true
+            // animation: true
+        });
+
+
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+            stats = new Stats();
+            stats.domElement.style.zIndex = 100;
+            document.getElementById('map').appendChild(stats.domElement);
+
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+            addLines();
+        };
+        threeLayer.addTo(map);
+
+
+        var lines;
+
+        //https://threejs.org/examples/#webgl_lines_fat
+        var material = new THREE.LineMaterial({
+            color: 0x00ffff,
+            // side: THREE.BackSide,
+            linewidth: 2 // in pixels
+            // vertexColors: THREE.VertexColors,
+            // dashed: false
+        });
+
+        var highlightmaterial = new THREE.LineMaterial({
+            linewidth: 4,
+            // side: THREE.BackSide,
+            color: 'yellow',
+            dashSize: 0.2,
+            gapSize: 0.2,
+            dashed: true
+            // opacity: 0.8,
+        });
+        highlightmaterial.defines.USE_DASH = '';
+
+        function addLines() {
+            fetch('./data/berlin-roads.txt').then(function (res) {
+                return res.text();
+            }).then(function (geojson) {
+                geojson = LZString.decompressFromBase64(geojson);
+                geojson = JSON.parse(geojson);
+
+                var lineStrings = maptalks.GeoJSON.toGeometry(geojson);
+                var list = [];
+                lineStrings.forEach(function (lineString) {
+                    list.push({
+                        lineString,
+                        //geoutil.js lineLength
+                        len: lineLength(lineString)
+                    });
+                });
+                list = list.sort(function (a, b) {
+                    return b.len - a.len
+                });
+                lineStrings = list.slice(0, 5000).map(d => {
+                    return d.lineString;
+                });
+                const line = new FatLines(lineStrings, {}, material, threeLayer);
+                threeLayer.addMesh(line);
+                animation();
+            })
+        }
+
+        function animation() {
+            // layer animation support Skipping frames
+            threeLayer._needsUpdate = !threeLayer._needsUpdate;
+            if (threeLayer._needsUpdate) {
+                threeLayer._renderer.clearCanvas();
+                threeLayer.renderScene();
+            }
+            stats.update();
+            requestAnimationFrame(animation);
+        }
+
+
+        var OPTIONS = {
+            altitude: 0
+        };
+
+        class FatLines extends maptalks.BaseObject {
+            constructor(lineStrings, options, material, layer) {
+                super();
+
+                const centers = [];
+                const len = lineStrings.length;
+                for (let i = 0; i < len; i++) {
+                    const lineString = lineStrings[i];
+                    centers.push(lineString.getCenter());
+                }
+                // Get the center point of the point set
+                const center = getCenterOfPoints(centers);
+                options = maptalks.Util.extend({}, OPTIONS, options, { layer, lineStrings, coordinate: center });
+
+                this._initOptions(options);
+
+
+
+                const ps = [];
+                for (let i = 0; i < len; i++) {
+                    const lineString = lineStrings[i];
+                    // const opts = maptalks.Util.extend({}, { altitude: options.altitude, index: i }, lineString.getProperties());
+                    const { positionsV } = getLinePosition(lineString, layer, center);
+                    for (let j = 0, len1 = positionsV.length; j < len1; j++) {
+                        const v = positionsV[j];
+                        if (j > 0 && j < len1 - 1) {
+                            ps.push(v.x, v.y, v.z);
+                        }
+                        ps.push(v.x, v.y, v.z);
+                    }
+                }
+                const geometry = new THREE.LineGeometry();
+                geometry.setPositions(ps);
+                // geometry.fromLineSegements(lineSeg);
+                const map = layer.getMap();
+                const size = map.getSize();
+                const width = size.width,
+                    height = size.height;
+                material.resolution.set(width, height);
+                const line = new THREE.Line2(geometry, material);
+                line.computeLineDistances();
+                this._createGroup();
+                this.getObject3d().add(line);
+                const { altitude } = options;
+                const z = layer.distanceToVector3(altitude, altitude).x;
+                const v = layer.coordinateToVector3(center, z);
+                this.getObject3d().position.copy(v);
+            }
+
+
+            setSymbol(material) {
+                if (material && material instanceof THREE.Material) {
+                    material.needsUpdate = true;
+                    const size = this.getMap().getSize();
+                    const width = size.width,
+                        height = size.height;
+                    material.resolution.set(width, height);
+                    this.getObject3d().children[0].material = material;
+                }
+                return this;
+            }
+
+            //test Baseobject customize its identity
+            // identify(coordinate) {
+            //     const layer = this.getLayer(), size = this.getMap().getSize(),
+            //         camera = this.getLayer().getCamera(), positions = this.getOptions().positions, altitude = this.getOptions().altitude;
+            //     let canvas = layer._testCanvas;
+            //     if (!canvas) {
+            //         canvas = layer._testCanvas = document.createElement('canvas');
+            //     }
+            //     canvas.width = size.width;
+            //     canvas.height = size.height;
+            //     const context = canvas.getContext('2d');
+
+            //     const pixels = simplepath.vectors2Pixel(positions, size, camera, altitude, layer);
+            //     const lineWidth = this.getObject3d().children[0].material.linewidth + 3;
+            //     simplepath.draw(context, pixels, 'LineString', { lineWidth: lineWidth });
+            //     const pixel = this.getMap().coordToContainerPoint(coordinate);
+            //     if (context.isPointInStroke(pixel.x, pixel.y)) {
+            //         return true;
+            //     }
+            // }
+        }
+
+
+
+
+        function getCenterOfPoints(coordinates = []) {
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            for (let i = 0, len = coordinates.length; i < len; i++) {
+                const c = coordinates[i];
+                let x, y;
+                if (Array.isArray(c)) {
+                    x = c[0];
+                    y = c[1];
+                } else if (c instanceof maptalks.Coordinate) {
+                    x = c.x;
+                    y = c.y;
+                }
+                minX = Math.min(minX, x);
+                minY = Math.min(minY, y);
+                maxX = Math.max(maxX, x);
+                maxY = Math.max(maxY, y);
+            }
+            return new maptalks.Coordinate((minX + maxX) / 2, (minY + maxY) / 2);
+        }
+
+
+    </script>
+</body>
+
+</html>
