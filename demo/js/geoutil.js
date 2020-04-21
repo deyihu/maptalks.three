@@ -141,7 +141,7 @@ function lineSlice(cs, lineChunkLength = 10) {
 }
 
 
-function getLinePosition(lineString, layer) {
+function getLinePosition(lineString, layer, center) {
     const positions = [];
     const positionsV = [];
     const globalPositions = [];
@@ -157,7 +157,7 @@ function getLinePosition(lineString, layer) {
         if (!lineString || !(lineString instanceof maptalks.LineString)) return;
         const z = 0;
         const coordinates = lineString.getCoordinates();
-        const centerPt = layer.coordinateToVector3(lineString.getCenter());
+        const centerPt = layer.coordinateToVector3(center || lineString.getCenter());
         for (let i = 0, len = coordinates.length; i < len; i++) {
             let coordinate = coordinates[i];
             if (Array.isArray(coordinate)) {
