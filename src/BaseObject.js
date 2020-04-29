@@ -385,6 +385,18 @@ class BaseObject extends maptalks.Eventable(Base) {
         this.object3d.__parent = this;
         return this;
     }
+
+    _add() {
+        const scene = this.getLayer().getScene();
+        scene.add(this.getObject3d());
+        return this;
+    }
+
+    _remove() {
+        const scene = this.getLayer().getScene();
+        scene.remove(this.getObject3d());
+        return this;
+    }
 }
 
 export default BaseObject;

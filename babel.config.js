@@ -1,3 +1,4 @@
+/* eslint-disable quotes */
 const path = require('path');
 module.exports = {
     presets: [
@@ -5,5 +6,8 @@ module.exports = {
             "loose": true, "modules": false
         }]
     ],
-    include: [path.resolve(__dirname, "./node_modules/geometry-extrude")]
+    include: [
+        path.resolve(__dirname, "./node_modules/geometry-extrude"),
+        path.resolve(__dirname, "./node_modules/rbush")
+    ]
 }

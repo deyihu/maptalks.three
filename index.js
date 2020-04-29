@@ -19,6 +19,8 @@ import Terrain from './src/Terrain';
 import TerrainVectorTileLayer from './src/TerrainVectorTileLayer';
 import HeatMap from './src/HeatMap';
 import { setRaycasterLinePrecision } from './src/util/ThreeAdaptUtil';
+import Label from './src/Label';
+import LabelManager from './src/util/LabelManage';
 
 const options = {
     'renderer': 'gl',
@@ -53,6 +55,8 @@ const EVENTS = [
     'touchmove',
     'touchend'
 ];
+
+const LABEL_COLLIDES_EVENTS = 'animating zooming animateend moveend viewchange';
 
 const MATRIX4 = new THREE.Matrix4();
 
@@ -380,6 +384,9 @@ class ThreeLayer extends maptalks.CanvasLayer {
     }
 
 
+    toLabel(coordinate, options) {
+        return new Label(coordinate, options, null, this);
+    }
 
 
     clearMesh() {
@@ -447,8 +454,9 @@ class ThreeLayer extends maptalks.CanvasLayer {
         const scene = this.getScene();
         meshes.forEach(mesh => {
             if (mesh instanceof BaseObject) {
-                scene.add(mesh.getObject3d());
+                // scene.add(mesh.getObject3d());
                 if (!mesh.isAdd) {
+                    mesh._add();
                     mesh.isAdd = true;
                     mesh._fire('add', { target: mesh });
                 }
@@ -459,7 +467,9 @@ class ThreeLayer extends maptalks.CanvasLayer {
                 scene.add(mesh);
             }
         });
+        this.labelManager.cacheLabels(meshes);
         this._zoomend();
+        this.labelManager.collides();
         if (render) {
             this.renderScene();
         }
@@ -478,8 +488,9 @@ class ThreeLayer extends maptalks.CanvasLayer {
         const scene = this.getScene();
         meshes.forEach(mesh => {
             if (mesh instanceof BaseObject) {
-                scene.remove(mesh.getObject3d());
+                // scene.remove(mesh.getObject3d());
                 if (mesh.isAdd) {
+                    mesh._remove();
                     mesh.isAdd = false;
                     mesh._fire('remove', { target: mesh });
                 }
@@ -490,6 +501,8 @@ class ThreeLayer extends maptalks.CanvasLayer {
                 scene.remove(mesh);
             }
         });
+        this.labelManager.removeLabels(meshes);
+        this.labelManager.collides();
         if (render) {
             this.renderScene();
         }
@@ -570,10 +583,16 @@ class ThreeLayer extends maptalks.CanvasLayer {
                 return baseObject;
             });
         }
+        const labels = this.labelManager.getLabels();
+        if (labels && labels.length) {
+            for (let i = 0, len = labels.length; i < len; i++) {
+                hasidentifyChildren.push(labels[i]);
+            }
+        }
         if (hasidentifyChildren.length) {
             hasidentifyChildren.forEach(baseObject => {
                 // baseObject identify
-                if (baseObject.identify(coordinate)) {
+                if (baseObject.identify(coordinate, p)) {
                     baseObjects.push(baseObject);
                 }
             });
@@ -731,7 +750,11 @@ class ThreeLayer extends maptalks.CanvasLayer {
         if (!this._animationBaseObjectMap) {
             this._animationBaseObjectMap = {};
         }
+        if (!this.labelManage) {
+            this.labelManager = new LabelManager(this);
+        }
         map.on('zooming zoomend', this._zoomend, this);
+        map.on(LABEL_COLLIDES_EVENTS, this.labelManager.collides, this.labelManager);
         return this;
     }
 
@@ -743,6 +766,7 @@ class ThreeLayer extends maptalks.CanvasLayer {
             map.off(event, this._identifyBaseObjectEvents, this);
         });
         map.off('zooming zoomend', this._zoomend, this);
+        map.off(LABEL_COLLIDES_EVENTS, this.labelManager.collides, this.labelManager);
         return this;
     }
 
