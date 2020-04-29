@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>label</title>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/gcoord@0.2.3/dist/gcoord.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/dat.gui@0.7.6/build/dat.gui.min.js"></script>
+    <link type="text/css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.css">
+    <script type="text/javascript" src="./js/maptalks.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/three@0.104.0/build/three.min.js"></script>
+    <script type="text/javascript" src="../dist/maptalks.three.js"></script>
+    <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/three@0.104.0/examples/js/libs/stats.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        html,
+        body {
+            margin: 0px;
+            height: 100%;
+            width: 100%;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            /* background-color: #000; */
+        }
+
+        .content {
+            background: black;
+            color: white;
+            height: 100%;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <script>
+
+        var map = new maptalks.Map("map", {
+            "center": [114.02886943761405, 22.536328869597213], "zoom": 13, "pitch": 12.000000000000057, "bearing": -3.0000000000001137,
+            centerCross: true,
+            doubleClickZoom: false,
+            // baseLayer: new maptalks.TileLayer('tile', {
+            //     urlTemplate: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
+            //     subdomains: ['a', 'b', 'c', 'd'],
+            //     // attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+            // })
+        });
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            forceRenderOnMoving: true,
+            forceRenderOnRotating: true
+            // animation: true
+        });
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+            stats = new Stats();
+            stats.domElement.style.zIndex = 100;
+            document.getElementById('map').appendChild(stats.domElement);
+
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+
+            getData();
+
+        };
+        threeLayer.addTo(map);
+
+        var color = 'red';
+
+
+        function crateTexture(fillStyle) {
+            const size = 16;
+            const canvasDom = document.createElement('canvas');
+            canvasDom.width = size;
+            canvasDom.height = size;
+            const ctx = canvasDom.getContext('2d');
+            ctx.fillStyle = fillStyle || color;
+            ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+            ctx.fill();
+            const texture = new THREE.Texture(canvasDom);
+            texture.needsUpdate = true; //使用贴图时进行更新
+            return texture;
+        }
+
+
+        function createMateria(fillStyle) {
+            return new THREE.PointsMaterial({
+                // size: 10,
+                sizeAttenuation: false,
+                // color: 'red',
+                // alphaTest: 0.5,
+                // vertexColors: THREE.VertexColors,
+                //  transparent: true
+                // color: 0xffffff,
+                size: 10,
+                transparent: true, //使材质透明
+                blending: THREE.AdditiveBlending,
+                depthTest: true, //深度测试关闭，不消去场景的不可见面
+                depthWrite: false,
+                map: crateTexture(fillStyle)
+            });
+        }
+
+        // 点的材质
+        const material = createMateria();
+
+
+
+        function getData() {
+            fetch('https://gw.alipayobjects.com/os/basement_prod/513add53-dcb2-4295-8860-9e7aa5236699.json').then((function (res) {
+                return res.json();
+            })).then(function (json) {
+                const data = json.features.slice(0, 5000).map(function (dataItem) {
+                    dataItem = gcoord.transform(dataItem, gcoord.AMap, gcoord.WGS84);
+                    return {
+                        coordinate: dataItem.geometry.coordinates,
+                        height: 0,
+                        value: Math.round(Math.random() * 1000000)
+                    }
+                });
+                addPoints(data);
+            });
+        }
+
+        var points = [];
+        var labels = [];
+        function addPoints(data) {
+            const point = threeLayer.toPoints(data, { interactive: false }, material);
+            points.push(point);
+            data.forEach(element => {
+                const { coordinate, value } = element;
+                const label = threeLayer.toLabel(coordinate, {
+                    content: `<div class="content"><i class=" fa fa-subway"></i> ${value}</div>`,
+                    altitude: 0,
+                    horizontalAlign: 'left',
+                    verticalAlign: 'bottom',
+                    width: value.toString().length * 12 + 20,
+                    height: 25,
+                    // weight,
+                    dy: -4,
+                    interactive: false
+                });
+                labels.push(label);
+            });
+            threeLayer.addMesh(points);
+            threeLayer.addMesh(labels.slice(0, Infinity));
+            initGui();
+            animation();
+        }
+
+
+
+        function animation() {
+            // layer animation support Skipping frames
+            threeLayer._needsUpdate = !threeLayer._needsUpdate;
+            if (threeLayer._needsUpdate) {
+                threeLayer._renderer.clearCanvas();
+                threeLayer.renderScene();
+            }
+            stats.update();
+            requestAnimationFrame(animation);
+        }
+
+        function initGui() {
+            var params = {
+                add: true,
+                color: '#fff',
+                show: true,
+                opacity: 1,
+                altitude: 0,
+                horizontalAligns: ['left', 'center', 'right'],
+                horizontalAlign: 'left',
+                verticalAligns: ['top', 'middle', 'bottom'],
+                verticalAlign: 'bottom',
+                dx: 0,
+                dy: -4
+                // animateShow: animateShow
+            };
+
+            var gui = new dat.GUI();
+            gui.add(params, 'add').onChange(function () {
+                if (params.add) {
+                    threeLayer.addMesh(labels);
+                } else {
+                    threeLayer.removeMesh(labels);
+                }
+            });
+            gui.add(params, 'horizontalAlign', params.horizontalAligns).onChange(function () {
+                labels.forEach(label => {
+                    label.options.horizontalAlign = params.horizontalAlign;
+                });
+
+            });
+            gui.add(params, 'verticalAlign', params.verticalAligns).onChange(function () {
+                labels.forEach(label => {
+                    label.options.verticalAlign = params.verticalAlign;
+                });
+
+            });
+            gui.add(params, 'dx', -50, 50).onChange(function () {
+                labels.forEach(label => {
+                    label.options.dx = params.dx;
+                });
+            });
+            gui.add(params, 'dy', -50, 50).onChange(function () {
+                labels.forEach(label => {
+                    label.options.dy = params.dy;
+                });
+            });
+            gui.add(params, 'altitude', 0, 300).onChange(function () {
+                labels.forEach(function (mesh) {
+                    mesh.setAltitude(params.altitude);
+                });
+            })
+        }
+    </script>
+</body>
+
+</html>
