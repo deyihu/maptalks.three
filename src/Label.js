@@ -37,6 +37,7 @@ class Label extends BaseObject {
         this.isLabel = true;
         this.labelManager = layer.labelManager;
         this._collidesShow = true;
+        this._rect = null;
         this._init();
     }
 
@@ -44,9 +45,13 @@ class Label extends BaseObject {
         return this._collidesShow;
     }
 
-    isInCurrentView() {
-        const extent = this.getMap().getExtent();
-        return extent.contains(this.getCenter());
+    isInCurrentView(extent) {
+        extent = extent || this.getMap().getExtent();
+        const { xmin, ymin, xmax, ymax } = extent;
+        const { x, y } = this.getOptions().coordinate;
+        // Higher performance
+        return (x >= xmin && x <= xmax && y >= ymin && y <= ymax);
+        // return extent.contains(this.getCenter());
     }
 
     getWeight() {
@@ -93,8 +98,8 @@ class Label extends BaseObject {
         };
     }
 
-    updatePosition() {
-        this.getObject3d().__updatePosition(this.getRect());
+    updatePosition(rect) {
+        this.getObject3d().__updatePosition(rect || this.getRect());
     }
 
     // eslint-disable-next-line no-unused-vars
@@ -144,7 +149,11 @@ class Label extends BaseObject {
 
     _animation() {
         if (this.isCollidesShow()) {
-            this.updatePosition();
+            const rect = this.getRect();
+            this._rect = rect;
+            this.updatePosition(rect);
+        } else {
+            this._rect = this.getRect();
         }
     }
 

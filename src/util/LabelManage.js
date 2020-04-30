@@ -14,6 +14,7 @@ class LabelManager {
                 this._labels.push(labels[i]);
             }
         }
+        // sort by weight
         this._labels = this._labels.sort((a, b) => {
             return b.getWeight() - a.getWeight();
         });
@@ -56,14 +57,12 @@ class LabelManager {
         if (!this._labels.length) {
             return;
         }
-        // if (e) {
-        //     console.log(e.type);
-        // }
+        const extent = this.layer.getMap().getExtent();
         const labels = this._labels, currentLabels = [], removeLabels = [], addLabels = [];
         if (labels && labels.length) {
             for (let i = 0, len = labels.length; i < len; i++) {
                 const label = labels[i];
-                if (!label.isInCurrentView()) {
+                if (!label.isInCurrentView(extent)) {
                     label._collidesShow = false;
                     if (label._isAddToMap()) {
                         removeLabels.push(label);
@@ -73,7 +72,7 @@ class LabelManager {
                 }
             }
         }
-        if (e && e.type === 'animating') {
+        if (e && (e.type === 'animating' || (e.type === 'zooming' && this.getLabels().length > 2000))) {
             for (let index = 0; index < removeLabels.length; index++) {
                 removeLabels[index]._remove();
             }
@@ -85,20 +84,22 @@ class LabelManager {
             if (currentLabels && currentLabels.length) {
                 for (let i = 0, len = currentLabels.length; i < len; i++) {
                     const label = currentLabels[i];
-                    const rect = label.getRect();
+                    const rect = label._rect || label.getRect();
+                    const isAddToMap = label._isAddToMap();
                     if (this.rbush.collides(rect)) {
                         label._collidesShow = false;
-                        if (label._isAddToMap()) {
+                        if (isAddToMap) {
                             removeLabels.push(label);
                         }
                     } else {
                         this.rbush.insert(rect);
                         this._currentLabels.push(label);
                         label._collidesShow = true;
-                        if (!label._isAddToMap()) {
+                        if (!isAddToMap) {
                             addLabels.push(label);
                         }
                     }
+                    // label._rect = null;
                 }
             }
         }
