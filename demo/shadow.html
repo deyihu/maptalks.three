@@ -7,8 +7,8 @@
     <link type="text/css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.css">
     <script type="text/javascript" src="./js/maptalks.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/three@0.115.0/build/three.min.js"></script>
-    <!-- <script type="text/javascript" src="./../dist/maptalks.three.js"></script> -->
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/maptalks.three/dist/maptalks.three.js"></script>
+    <script type="text/javascript" src="./../dist/maptalks.three.js"></script>
+    <!-- <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/maptalks.three/dist/maptalks.three.js"></script> -->
     <script type="text/javascript"
         src="https://cdn.jsdelivr.net/npm/three@0.115.0/examples/js/libs/stats.min.js"></script>
     <style>
@@ -63,7 +63,7 @@
         var ground, light, lightHelper, lightCameraHelper,
             spotLight, spotLightHelper,
             pointLight, pointLightHelper,
-            lnglat = [13.510762044348667, 52.60579972166951], centerLngLat = [13.401745279633246, 52.51832683303573], height = 5200;
+            lnglat = [13.510762044348667, 52.60579972166951], centerLngLat = [13.401745279633246, 52.51832683303573], height = 10000;
         var groundMaterial = new THREE.MeshPhongMaterial({
             // side: THREE.DoubleSide,
             color: 'gray'
@@ -122,10 +122,10 @@
             light.target = cube;
             light.shadow.mapSize.width = 512 * 10;
             light.shadow.mapSize.height = 512 * 10;
-            light.shadow.camera.top = 180;
-            light.shadow.camera.bottom = - 100;
-            light.shadow.camera.left = - 281;
-            light.shadow.camera.right = 964;
+            light.shadow.camera.top = 128;
+            light.shadow.camera.bottom = - 86;
+            light.shadow.camera.left = - 68;
+            light.shadow.camera.right = 74;
             // scene.add(light);
 
             lightHelper = new THREE.DirectionalLightHelper(light, 1, 'red');
@@ -145,7 +145,7 @@
             // scene.add(pointLightHelper);
 
             // scene.add(pointLight);
-
+            addMeshs();
             addBox();
         };
         threeLayer.addTo(map);
@@ -162,6 +162,48 @@
             return cube;
         }
 
+
+        function addMeshs() {
+            const lnglats = [
+
+                [13.436888403560943, 52.54498759919656]
+                , [13.43912951079767, 52.5473335373118]
+                , [13.439419135042954, 52.54715026403423]
+                , [13.439905396412883, 52.54697949908049]
+                , [13.441117846713269, 52.546443514880224]
+                , [13.441993040510397, 52.546354927811734]
+                , [13.444195295650047, 52.54549185248678]
+                , [13.443317069103045, 52.54498514697829]
+                , [13.442726189406358, 52.54462762734781]
+                , [13.441258264453836, 52.54347558333697]
+                , [13.436857085079623, 52.54494620022942]
+            ];
+            const polygon = new maptalks.Polygon([lnglats]);
+            var material = new THREE.MeshLambertMaterial({
+                color: 'red'
+            });
+            const extrudePolygon = threeLayer.toExtrudePolygon(polygon, { height: 2000, interactive: false }, material);
+            extrudePolygon.getObject3d().castShadow = true;
+            threeLayer.addMesh(extrudePolygon);
+
+            const lnglats1 = [
+                [13.45743449029078, 52.530808718257134]
+                , [13.430051361864344, 52.55102063856944]
+                , [13.427130011346549, 52.55218100922096]
+                , [13.42187536035749, 52.552809394572336]
+                , [13.418295466267068, 52.5531437175521]
+                , [13.414684633938805, 52.55358049197153]
+                , [13.414307785761252, 52.55210718779401]
+                , [13.410710409909598, 52.55235907543434]
+                , [13.406013586298855, 52.552709469877385]
+                , [13.403198385854012, 52.55294213733529]
+                
+            ];
+            const extrudeLine = threeLayer.toExtrudeLine(new maptalks.LineString(lnglats1), { width: 0, height: 1000 }, material);
+            extrudeLine.getObject3d().castShadow = true;
+            threeLayer.addMesh(extrudeLine);
+
+        }
         function addBox() {
             var lnglats = [
                 [13.429362937522342, 52.518205849377495]
@@ -281,44 +323,13 @@
             var material = new THREE.MeshLambertMaterial({
                 color: 'white'
             });
-            var highlightmaterial = new THREE.MeshLambertMaterial({
-                color: 'red'
-            });
             lnglats.forEach(function (lnglat) {
                 for (let j = 0; j < 1; j++) {
                     var box = new Box(lnglat, {
-                        interactive: true,
+                        interactive: false,
                         altitude: 100 * j
                     }, material, threeLayer);
                     boxs.push(box);
-                    //tooltip test
-                    // box.setToolTip(box.getId(), {
-                    //     showTimeout: 0,
-                    //     eventsPropagation: true,
-                    //     dx: 10
-                    // });
-
-
-                    // //infowindow test
-                    // box.setInfoWindow({
-                    //     content: 'hello world,id:' + box.getId(),
-                    //     title: 'message',
-                    //     animationDuration: 0,
-                    //     autoOpenOn: false
-                    // });
-                    //event test
-                    ['click', 'mouseout', 'mouseover', 'mousedown', 'mouseup', 'dblclick', 'contextmenu'].forEach(function (eventType) {
-                        box.on(eventType, function (e) {
-                            // console.log(e.type, e);
-                            // console.log(this.getId());
-                            if (e.type === 'mouseout') {
-                                this.setSymbol(material);
-                            }
-                            if (e.type === 'mouseover') {
-                                this.setSymbol(highlightmaterial);
-                            }
-                        });
-                    });
                 }
             });
             threeLayer.addMesh(boxs);
@@ -353,6 +364,7 @@
                 spotLightHelper.update();
                 lightHelper.update();
                 pointLightHelper.update();
+                lightCameraHelper.update();
                 updatePointLightPosition();
             }
             stats.update();
@@ -451,7 +463,7 @@
                 light.shadow.camera.needsUpdate = true;
                 light.shadow.camera.updateProjectionMatrix();
             });
-            lightF.add(params, 'lightHeight', 0, 6000).onChange(function () {
+            lightF.add(params, 'lightHeight', 0, 20000).onChange(function () {
                 const z = threeLayer.distanceToVector3(params.lightHeight, params.lightHeight).x;
                 light.position.z = z;
             });
@@ -477,7 +489,7 @@
             spotLightF.add(params, 'spotLightAngle', 0, Math.PI).onChange(function () {
                 spotLight.angle = params.spotLightAngle;
             });
-            spotLightF.add(params, 'spotLightHeight', 0, 6000).onChange(function () {
+            spotLightF.add(params, 'spotLightHeight', 0, 20000).onChange(function () {
                 const z = threeLayer.distanceToVector3(params.spotLightHeight, params.spotLightHeight).x;
                 spotLight.position.z = z;
             });
