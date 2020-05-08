@@ -66,17 +66,20 @@
             var light = new THREE.DirectionalLight(0xffffff);
             light.position.set(0, -10, 10).normalize();
             scene.add(light);
+
             var material = new THREE.MeshBasicMaterial({ color: '#3e35cf' });
             var meshs = [];
-            features.forEach(function (g) {
-                var heightPerLevel = 10;
-                var levels = g.properties.levels || 1;
-                var mesh = threeLayer.toExtrudePolygon(maptalks.GeoJSON.toGeometry(g), {
+            var heightPerLevel = 10;
+            var polygons = features.map(f => {
+                const polygon = maptalks.GeoJSON.toGeometry(f);
+                var levels = f.properties.levels || 1;
+                polygon.setProperties({
                     height: heightPerLevel * levels,
-                    topColor: '#fff'
-                }, material);
-                meshs.push(mesh);
+                });
+                return polygon;
             });
+            const extrudePolygons = threeLayer.toExtrudePolygons(polygons, { topColor: '#fff', interactive: false }, material);
+            meshs.push(extrudePolygons);
             threeLayer.addMesh(meshs);
             addLines();
         };
@@ -117,7 +120,7 @@
                     return b.len - a.len
                 });
 
-                var offset = 500;
+                var offset = 2000;
                 lineTrips = list.slice(0, offset).map(d => {
                     var line = new LineTrip(d.lineString, {
                         chunkLength: d.len / 100,
@@ -126,17 +129,16 @@
                     }, material, threeLayer)
                     return line;
                 });
-                var lines = list.slice(0, Infinity).map(d => {
-                    return threeLayer.toLine(d.lineString, {}, lineMaterial);
-                });
+                var line = threeLayer.toLines(list.map(l => {
+                    return l.lineString
+                }), { interactive: false }, lineMaterial);
 
 
                 console.log('lines.length:', lineTrips.length);
                 console.timeEnd(timer);
-                threeLayer.addMesh(lines);
+                threeLayer.addMesh(line);
                 threeLayer.addMesh(lineTrips);
                 initGui();
-                // threeLayer.config('animation', true);
                 animation();
             })
         }
@@ -179,15 +181,6 @@
                 material.opacity = params.opacity;
                 lineTrips.forEach(function (mesh) {
                     mesh.setSymbol(material);
-                });
-            });
-            gui.add(params, 'show').onChange(function () {
-                lineTrips.forEach(function (mesh) {
-                    if (params.show) {
-                        mesh.show();
-                    } else {
-                        mesh.hide();
-                    }
                 });
             });
             gui.add(params, 'altitude', 0, 300).onChange(function () {
@@ -268,14 +261,26 @@
                     positionMap,
                     centerPt
                 };
-                // this._init();
+                this._init();
             }
 
             _init() {
                 const { len, chunkLines, layer, positionMap, centerPt } = this._params;
                 for (let i = 0; i < len; i++) {
-                    const result = chunkLines.slice(0, i);
-                    const ps = getChunkLinesPosition(result, layer, positionMap, centerPt).positions;
+                    let ps = [];
+                    if (i > 0) {
+                        const prePs = this._params.positions[i - 1];
+                        for (let j = 0, len1 = prePs.length; j < len1; j++) {
+                            ps.push(prePs[j]);
+                        }
+                        const nextPs = getChunkLinesPosition([chunkLines[i]], layer, positionMap, centerPt).positions;
+                        for (let j = 0, len1 = nextPs.length; j < len1; j++) {
+                            ps.push(nextPs[j]);
+                        }
+                    } else {
+                        const result = chunkLines.slice(0, i);
+                        ps = getChunkLinesPosition(result, layer, positionMap, centerPt).positions;
+                    }
                     this._params.positions[i] = ps;
                 }
             }
