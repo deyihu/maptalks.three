@@ -78,7 +78,7 @@
             threeLayer.getThreeRenderer().shadowMap.enabled = true;
             threeLayer.getThreeRenderer().shadowMap.needsUpdate = true;
 
-            ground = new Ground(map.getCenter(), {}, groundMaterial, threeLayer);
+            ground = new Ground(map.getCenter(), {}, groundShadowMaterial, threeLayer);
             threeLayer.addMesh(ground);
 
             // var light = new THREE.HemisphereLight(0xffffff, 0x444444, 0.1);
@@ -116,7 +116,7 @@
             spotLightHelper.color = new THREE.Color('black');
             threeLayer.addMesh(spotLightHelper);
 
-            light = new THREE.DirectionalLight(0xffffff, 1);
+            light = new THREE.DirectionalLight(0xffffff, 0.7);
             light.position.copy(v)
             light.castShadow = true;
             light.target = cube;
@@ -180,9 +180,9 @@
             ];
             const polygon = new maptalks.Polygon([lnglats]);
             var material = new THREE.MeshLambertMaterial({
-                color: 'red'
+                color: '#fff'
             });
-            const extrudePolygon = threeLayer.toExtrudePolygon(polygon, { height: 2000, interactive: false }, material);
+            const extrudePolygon = threeLayer.toExtrudePolygon(polygon, { height: 2000, interactive: false, topColor: '#fff' }, material);
             extrudePolygon.getObject3d().castShadow = true;
             threeLayer.addMesh(extrudePolygon);
 
@@ -197,9 +197,11 @@
                 , [13.410710409909598, 52.55235907543434]
                 , [13.406013586298855, 52.552709469877385]
                 , [13.403198385854012, 52.55294213733529]
-                
+
             ];
-            const extrudeLine = threeLayer.toExtrudeLine(new maptalks.LineString(lnglats1), { width: 0, height: 1000 }, material);
+            const extrudeLine = threeLayer.toExtrudeLine(new maptalks.LineString(lnglats1), { width: 0, height: 1000 }, new THREE.MeshLambertMaterial({
+                color: 'red'
+            }));
             extrudeLine.getObject3d().castShadow = true;
             threeLayer.addMesh(extrudeLine);
 
@@ -359,7 +361,6 @@
             if (threeLayer._needsUpdate) {
                 threeLayer._renderer.clearCanvas();
                 threeLayer.renderScene();
-                threeLayer.renderPickScene();
 
                 spotLightHelper.update();
                 lightHelper.update();
@@ -378,7 +379,7 @@
                 show: true,
                 opacity: 1,
                 altitude: 0,
-                transparent: false,
+                transparent: true,
 
                 pointLightAdd: false,
 
@@ -532,37 +533,6 @@
                 const position = layer.coordinateToVector3(coordinate, z);
                 this.getObject3d().position.copy(position);
                 this.getObject3d().castShadow = true;
-                this._setPickObject3d();
-                this._init();
-            }
-
-            _init() {
-                const pick = this.getLayer().getPick();
-                this.on('add', () => {
-                    pick.add(this.pickObject3d);
-                });
-                this.on('remove', () => {
-                    pick.remove(this.pickObject3d);
-                });
-            }
-
-
-            _setPickObject3d(ps, linewidth) {
-                const geometry = this.getObject3d().geometry.clone();
-                const pick = this.getLayer().getPick();
-                const color = pick.getColor();
-                const material = new THREE.MeshBasicMaterial();
-                material.color.set(color.getStyle());
-                const mesh = new THREE.Mesh(geometry, material);
-                mesh.position.copy(this.getObject3d().position);
-
-                const colorIndex = color.getHex();
-                mesh._colorIndex = colorIndex;
-                this.setPickObject3d(mesh);
-            }
-
-            identify(coordinate) {
-                return this.picked;
             }
         }
 
