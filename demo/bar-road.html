@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>bar test</title>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/gcoord@0.2.3/dist/gcoord.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/dat.gui@0.7.6/build/dat.gui.min.js"></script>
+    <link type="text/css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.css">
+    <script type="text/javascript" src="./js/maptalks.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/three@0.97.0/build/three.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/maptalks.three/dist/maptalks.three.js"></script>
+    <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/three@0.97.0/examples/js/libs/stats.min.js"></script>
+    <script type="text/javascript" src="./data/nysubways.js"></script>
+    <script type="text/javascript" src="./js/geoutil.js"></script>
+    <style>
+        html,
+        body {
+            margin: 0px;
+            height: 100%;
+            width: 100%;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <script>
+
+        var map = new maptalks.Map("map", {
+            "center": [121.471156195405, 31.229734728377565], "zoom": 12.336699596039622, "pitch": 59.600000000000186, "bearing": 0.9978398437501711,
+
+            centerCross: true,
+            doubleClickZoom: false,
+            baseLayer: new maptalks.TileLayer('tile', {
+                urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+                subdomains: ['a', 'b', 'c', 'd'],
+                attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+            })
+        });
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            forceRenderOnMoving: true,
+            forceRenderOnRotating: true
+            // animation: true
+        });
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+            stats = new Stats();
+            stats.domElement.style.zIndex = 100;
+            document.getElementById('map').appendChild(stats.domElement);
+
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+            // camera.add(new THREE.PointLight(0xffffff, 1));
+            getSubWayData();
+
+        };
+        threeLayer.addTo(map);
+
+        function generateCoordinate(ll) {
+            let [lng, lat] = ll.split(',');
+            lng = parseFloat(lng);
+            lat = parseFloat(lat);
+            return [lng, lat];
+        }
+
+        function generateCoordiantes(polyline) {
+            const lls = polyline.split(';');
+            const coordinates = [];
+            lls.forEach(ll => {
+                coordinates.push(generateCoordinate(ll));
+            });
+            return coordinates;
+        }
+
+
+        function getSubWayData() {
+            const NAMES = ['1', '2', '3', '4', '5', '5-1', '6', '7', '8', '9', '10', '10-1', '11', '11-1', '12', '13', '16', '17'];
+            let idx = 0;
+            const data = [];
+            function getData(name) {
+                fetch(`./data/shanghaisubway/${name}.json`).then(res => res.json()).then(json => {
+                    if (!Array.isArray(json)) json = [json];
+                    json.forEach(element => {
+                        const buslines = element.buslines;
+                        buslines.forEach(bus => {
+                            const {
+                                polyline,
+                            } = bus;
+                            bus.lineString = generateCoordiantes(polyline);
+                            data.push(bus)
+                        });
+                    });
+                    idx++;
+                    if (idx < NAMES.length) {
+                        getData(NAMES[idx]);
+                    } else {
+                        formatData(data);
+                    }
+                })
+            }
+            getData(NAMES[idx]);
+        }
+
+        function getColor(height) {
+            if (height < 1000) {
+                return 'green';
+            } else if (height >= 1000 && height < 1800) {
+                return 'yellow';
+            } else {
+                return 'red';
+            }
+        }
+
+        function formatData(features) {
+            var indexMap = {};
+            const data = [];
+            features.slice(0, 50).forEach(function (feature) {
+                var { name, lineString,color } = feature;
+                if (!indexMap[name]) {
+                    indexMap[name] = 0;
+                }
+                const lineList = lineSlice(lineString, 80);
+                const coordinatesMap = {};
+                lineList.forEach(element => {
+                    element.forEach(ele => {
+                        const str = ele.join('-').toString();
+                        if (!coordinatesMap[str]) {
+                            const height = 1000 * (Math.cos(Math.PI / 180 * indexMap[name]) + 1) + 1;
+                            // const color = getColor(height);
+                            data.push({
+                                coordinate: ele,
+                                radius: 25,
+                                topColor: '#fff',
+                                color,
+                                height,
+                                radialSegments: 4
+                            });
+                            indexMap[name] += 4;
+                            coordinatesMap[str] = true;
+                        }
+                    });
+                });
+            });
+            addBars(data);
+            animation();
+        }
+
+
+        var bars = [], selectMesh = [];
+        var material = new THREE.MeshLambertMaterial({ color: '#fff', transparent: true });
+        var highlightmaterial = new THREE.MeshBasicMaterial({ color: 'yellow', transparent: true, opacity: 0.5 });
+
+        var min = Infinity, max = -Infinity;
+
+        function addBars(data) {
+            const colorMap = {};
+            data.forEach(d => {
+                const { color } = d;
+                if (!colorMap[color]) {
+                    const m = material.clone();
+                    m.color.set(color);
+                    colorMap[color] = {
+                        data: [],
+                        material: m
+                    }
+                }
+                colorMap[color].data.push(d);
+            });
+            console.log(colorMap);
+            for (let color in colorMap) {
+                const { data, material } = colorMap[color];
+                const mesh = threeLayer.toBars(data, { interactive: false }, material);
+                bars.push(mesh);
+            }
+            console.log(bars);
+            threeLayer.addMesh(bars);
+            initGui();
+        }
+
+        function animation() {
+            // layer animation support Skipping frames
+            threeLayer._needsUpdate = !threeLayer._needsUpdate;
+            if (threeLayer._needsUpdate) {
+                threeLayer._renderer.clearCanvas();
+                threeLayer.renderScene();
+            }
+            stats.update();
+            requestAnimationFrame(animation);
+        }
+
+        function initGui() {
+            var params = {
+                add: true,
+                color: '#fff',
+                show: true,
+                opacity: 1,
+                altitude: 0,
+                animateShow: animateShow,
+                interactive: false
+            };
+
+            var gui = new dat.GUI();
+            gui.add(params, 'add').onChange(function () {
+                if (params.add) {
+                    threeLayer.addMesh(bars);
+                } else {
+                    threeLayer.removeMesh(bars);
+                }
+            });
+            // gui.addColor(params, 'color').name('bar color').onChange(function () {
+            //     material.color.set(params.color);
+            //     bars.forEach(function (mesh) {
+            //         mesh.setSymbol(material);
+            //     });
+            // });
+            gui.add(params, 'opacity', 0, 1).onChange(function () {
+                bars.forEach(function (mesh) {
+                    const material = mesh.getSymbol();
+                    material.opacity = params.opacity;
+                    mesh.setSymbol(material);
+                });
+            });
+            gui.add(params, 'show').onChange(function () {
+                bars.forEach(function (mesh) {
+                    if (params.show) {
+                        mesh.show();
+                    } else {
+                        mesh.hide();
+                    }
+                });
+            });
+            gui.add(params, 'altitude', 0, 300000).onChange(function () {
+                bars.forEach(function (mesh) {
+                    mesh.setAltitude(params.altitude);
+                });
+            });
+            gui.add(params, 'animateShow');
+            gui.add(params, 'interactive').onChange(function () {
+                bars.forEach(function (mesh) {
+                    mesh.options.interactive = params.interactive;
+                });
+            });
+        }
+
+        function animateShow() {
+            bars.forEach(function (mesh) {
+                mesh.animateShow({
+                    duration: 3000
+                });
+            });
+        }
+
+    </script>
+</body>
+
+</html>
