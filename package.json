@@ -44,6 +44,12 @@
     "maptalks": ">=0.39.0"
   },
   "dependencies": {
-    "geometry-extrude": "^0.1.2"
+    "@deck.gl/core": "^8.1.9",
+    "@loaders.gl/3d-tiles": "^2.1.6",
+    "@loaders.gl/core": "^2.1.6",
+    "@loaders.gl/tiles": "^2.1.6",
+    "@math.gl/web-mercator": "^3.1.5",
+    "geometry-extrude": "^0.1.2",
+    "viewport-mercator-project": "^7.0.1"
   }
 }

@@ -22,6 +22,7 @@ import { setRaycasterLinePrecision } from './src/util/ThreeAdaptUtil';
 import GPUPick from './src/GPUPick';
 import FatLine from './src/FatLine';
 import FatLines from './src/FatLines';
+import Tile3dLayer from './src/Tile3dLayer';
 
 const options = {
     'renderer': 'gl',
@@ -400,6 +401,10 @@ class ThreeLayer extends maptalks.CanvasLayer {
      */
     toFatLines(lineStrings, options, material) {
         return new FatLines(lineStrings, options, material, this);
+    }
+
+    toTile3dLayer(url, options, material) {
+        return new Tile3dLayer(url, options, material, this);
     }
 
 

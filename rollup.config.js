@@ -64,51 +64,51 @@ const basePlugins = [
 ];
 
 module.exports = [
-    {
-        input: 'src/worker/index.js',
-        plugins: [
-            json(),
-            resolve({
-                module: true,
-                jsnext: true,
-                main: true
-            }),
-            commonjs(),
-            babel()
-        ],
-        external: ['maptalks'],
-        output: {
-            format: 'amd',
-            name: 'maptalks',
-            globals: {
-                'maptalks': 'maptalks'
-            },
-            extend: true,
-            file: 'dist/worker.js'
-        },
-        // watch: {
-        //     include: 'src/worker/**'
-        // }
-    },
-    {
-        input: 'index.js',
-        plugins: basePlugins.concat([uglify()]),
-        external: ['maptalks', 'three'],
-        output: {
-            'sourcemap': false,
-            'format': 'umd',
-            'name': 'maptalks',
-            'banner': banner,
-            'outro': outro,
-            'intro': intro,
-            'extend': true,
-            'globals': {
-                'maptalks': 'maptalks',
-                'THREE': 'three'
-            },
-            'file': 'dist/maptalks.three.min.js'
-        }
-    },
+    // {
+    //     input: 'src/worker/index.js',
+    //     plugins: [
+    //         json(),
+    //         resolve({
+    //             module: true,
+    //             jsnext: true,
+    //             main: true
+    //         }),
+    //         commonjs(),
+    //         babel()
+    //     ],
+    //     external: ['maptalks'],
+    //     output: {
+    //         format: 'amd',
+    //         name: 'maptalks',
+    //         globals: {
+    //             'maptalks': 'maptalks'
+    //         },
+    //         extend: true,
+    //         file: 'dist/worker.js'
+    //     },
+    //     // watch: {
+    //     //     include: 'src/worker/**'
+    //     // }
+    // },
+    // {
+    //     input: 'index.js',
+    //     plugins: basePlugins.concat([uglify()]),
+    //     external: ['maptalks', 'three'],
+    //     output: {
+    //         'sourcemap': false,
+    //         'format': 'umd',
+    //         'name': 'maptalks',
+    //         'banner': banner,
+    //         'outro': outro,
+    //         'intro': intro,
+    //         'extend': true,
+    //         'globals': {
+    //             'maptalks': 'maptalks',
+    //             'THREE': 'three'
+    //         },
+    //         'file': 'dist/maptalks.three.min.js'
+    //     }
+    // },
     {
         input: 'index.js',
         plugins: basePlugins,
@@ -128,17 +128,17 @@ module.exports = [
             'file': 'dist/maptalks.three.js'
         }
     },
-    {
-        input: 'index.js',
-        plugins: basePlugins,
-        external: ['maptalks', 'three'],
-        output: {
-            'sourcemap': false,
-            'format': 'es',
-            'banner': banner,
-            'outro': outro,
-            'intro': intro,
-            'file': pkg.module
-        }
-    }
+    // {
+    //     input: 'index.js',
+    //     plugins: basePlugins,
+    //     external: ['maptalks', 'three'],
+    //     output: {
+    //         'sourcemap': false,
+    //         'format': 'es',
+    //         'banner': banner,
+    //         'outro': outro,
+    //         'intro': intro,
+    //         'file': pkg.module
+    //     }
+    // }
 ];
