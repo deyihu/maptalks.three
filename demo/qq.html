@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>model animation</title>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/dat.gui@0.7.6/build/dat.gui.min.js"></script>
+    <link type="text/css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.min.js"></script>
+
+    <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/maptalks-tilelayercollection@0.0.1/dist/maptalks-tilelayercollection.min.js"></script>
+    <style>
+        html,
+        body {
+            margin: 0px;
+            height: 100%;
+            width: 100%;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <script>
+
+        function i(t) {
+            return 64 === f.indexOf(t.charAt(t.length - 1)) ? t.substring(0, t.length - 1) : t
+        }
+
+
+        function r(t) {
+            if (!t) return null;
+            t = i(t), t = i(t);
+            var e = parseInt(t.length / 4 * 3, 10),
+                n = [];
+            t = t.replace(/[^A-Za-z0-9\+\/\=]/g, "");
+            var r = void 0,
+                o = void 0,
+                a = void 0,
+                s = void 0,
+                l = void 0,
+                u = void 0,
+                c = void 0,
+                d = 0,
+                h = 0;
+            for (d = 0; d < e; d += 3) s = f.indexOf(t.charAt(h++)), l = f.indexOf(t.charAt(h++)), u = f.indexOf(t.charAt(h++)), c = f.indexOf(t.charAt(h++)), r = s << 2 | l >> 4, o = (15 & l) << 4 | u >> 2, a = (3 & u) << 6 | c, n.push(r), 64 !== u && n.push(o), 64 !== c && n.push(a);
+            return n
+        }
+
+        function o(t, e) {
+            return t >> 8 - e & 255 | t << e & 255
+        }
+
+        function a(t) {
+            return o(t, 2) ^ o(t, 1) & o(t, 3)
+        }
+
+        function s(t, e) {
+            return {
+                x: e,
+                y: t ^ a(e)
+            }
+        }
+
+        function l(t) {
+            for (var e = t.length, n = [], i = 0; i < e; i += 2) {
+                var r = t[i],
+                    o = 0;
+                i + 1 < e && (o = t[i + 1]);
+                for (var a = 0, l = 0, u = 0; u < 3; u++) {
+                    var c = s(r, o);
+                    r = a = c.x, o = l = c.y
+                }
+                n.push(a), n.push(l)
+            }
+            return n
+        }
+
+        function u(t) {
+            for (var e = "", n = 0; n < t.length;) {
+                var i = t[n],
+                    r = 0,
+                    o = 0;
+                i < 128 ? (e += String.fromCharCode(i), n++) : i > 191 && i < 224 ? (r = t[n + 1], e += String.fromCharCode((31 & i) << 6 | 63 & r), n += 2) : (r = t[n + 1], o = t[n + 2], e += String.fromCharCode((15 & i) << 12 | (63 & r) << 6 | 63 & o), n += 3)
+            }
+            return e
+        }
+
+        function c(t) {
+            var e = t.lastIndexOf("}");
+            return t.substring(0, e + 1)
+        }
+        var f = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+
+        function decode(t) {
+            const result = c(u(l(r(t))));
+            // console.log(JSON.parse(result));
+            return JSON.parse(result);
+        }
+
+        const TecentVectorTileUrl = 'https://rt1.map.gtimg.com/tile?styleid=0&tiles={zxy}&version=458&style=100&compress=1&mapType=hybrid';
+
+        function getUrlArgs(x, y, z) {
+            return {
+                z: z,
+                x: x,
+                y: Math.pow(2, z) - 1 - y
+            };
+        }
+        var tileLayer = maptalks.TileLayerCollection.getTencentTileLayer(maptalks.Util.GUID(), { style: 'Normal' || 'Satellite' || 'Terrain', debug: false });
+
+        tileLayer.getTileUrl = function (x, y, z) {
+
+            const urlArgs = getUrlArgs(x, y, z);
+            const l = urlArgs.z;
+            const r = urlArgs.x;
+            const c = urlArgs.y;
+
+            // console.log(l, r, c);
+            const zxy = `${l}_${r}_${c}`;
+            // console.log(TecentVectorTileUrl.replace('{zxy}', zxy));
+            fetch(TecentVectorTileUrl.replace('{zxy}', zxy)).then(res => res.json()).then(json => {
+                const datas = json.datas;
+                datas.forEach(d => {
+                    const json = decode(d.data);
+                    this.calGeometry(json, x, y, z);
+                });
+            })
+
+            const m = Math.floor(r / 16.0);
+            const n = Math.floor(c / 16.0);
+            const urlTemplate = this.options['urlTemplate'];
+            const url = urlTemplate.replace('{x}', r).replace('{y}', c).replace('{z}', l).replace('{m}', m).replace('{n}', n);
+            return url;
+        };
+
+        tileLayer.calGeometry = function (data, x, y, z) {
+            const { xmin, ymin, xmax, ymax } = this._getTileExtent(x, y, z);
+            const xaverage = (xmax - xmin) / 256;
+            const yaverate = (ymax - ymin) / 256;
+            const map = this.getMap();
+            const projection = map.getProjection();
+            const { features, pois } = data;
+            (pois || []).forEach(d => {
+                console.log(d);
+                const xy = d[1];
+                const name = d[2];
+                if (Array.isArray(xy) && xy.length === 2) {
+                    if (layer.getGeometries().length > 1000) {
+                        return;
+                    }
+                    const [pixelx, pixely] = xy;
+                    let mlng = xmin + pixelx * xaverage;
+                    const mlat = (256 - pixely) * yaverate + ymin;
+                    const lnglat = projection.unproject(new maptalks.Point(mlng, mlat)); // 将二维平面坐标转化为经纬度坐标
+                    const marker = new maptalks.Marker(lnglat);
+                    marker.addTo(layer);
+                    marker.setInfoWindow({
+                        content: name,
+                        title: 'message',
+                        // animationDuration: 0,
+                        // autoOpenOn: true
+                    });
+                }
+            })
+        }
+
+        tileLayer._getTileExtent = function (x, y, z) {
+            const map = this.getMap(),
+                res = map._getResolution(z),
+                tileConfig = this._getTileConfig(),
+                tileExtent = tileConfig.getTilePrjExtent(x, y, res);
+            return tileExtent;
+        }
+
+        /**
+         *
+         * @param {} x
+         * @param {*} y
+         * @param {*} z
+         */
+        tileLayer._getTileLngLatExtent = function (x, y, z) {
+            const tileExtent = this._getTileExtent(x, y, z);
+            let max = tileExtent.getMax(),
+                min = tileExtent.getMin();
+            const map = this.getMap();
+            const projection = map.getProjection();
+            min = projection.unproject(min); // 将二维平面坐标转化为经纬度坐标
+            max = projection.unproject(max);
+            return new maptalks.Extent(min, max);
+        }
+
+
+        var map = new maptalks.Map("map", {
+            center: [31.316228135482525, 120.67994828588417].reverse(),
+            zoom: 18,
+            // bearing: 180,
+
+            centerCross: true,
+            doubleClickZoom: false,
+            baseLayer: tileLayer
+        });
+
+        const layer = new maptalks.VectorLayer('lllllll');
+        map.addLayer(layer);
+
+
+
+
+    </script>
+</body>
+
+</html>
