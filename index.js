@@ -1,4 +1,4 @@
-import './dist/worker';
+// import './dist/worker';
 import * as YY from 'yymap';
 import * as THREE from 'three';
 import BaseObject from './src/BaseObject';

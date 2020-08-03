@@ -15,9 +15,9 @@ if (pkg.peerDependencies && pkg.peerDependencies['yymap']) {
 outro = `typeof console !== 'undefined' && console.log('${outro}');`;
 const intro = `
     var IS_NODE = typeof exports === 'object' && typeof module !== 'undefined';
-    var YY = YY;
+    var YY = yymap;
     if (IS_NODE) {
-        YY = YY || require('yymap');
+        YY = yymap || require('yymap');
     }
     var workerLoaded;
     function define(_, chunk) {
@@ -101,12 +101,25 @@ module.exports = [
             'banner': banner,
             'outro': outro,
             'extend': true,
-            'intro': intro,
+            // 'intro': intro,
             'globals': {
-                'YY': 'maptalks',
+                'YY': 'yymap',
                 'THREE': 'three'
             },
             'file': 'dist/maptalks.three.js'
+        }
+    },
+    {
+        input: 'index.js',
+        plugins: basePlugins,
+        external: ['yymap', 'three'],
+        output: {
+            'sourcemap': false,
+            'format': 'es',
+            'banner': banner,
+            'outro': outro,
+            // 'intro': intro,
+            'file': pkg.module
         }
     }
 ];
