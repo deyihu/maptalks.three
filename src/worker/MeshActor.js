@@ -1,7 +1,8 @@
-import * as maptalks from 'maptalks';
+import * as YY from 'yymap';
 import { isGeoJSONPolygon } from '../util/GeoJSONUtil';
 import { getPolygonPositions } from '../util/ExtrudeUtil';
 import pkg from './../../package.json';
+const maptalks = YY.getNamespace().maptalks;
 
 let MeshActor;
 if (maptalks.worker) {

@@ -1,9 +1,10 @@
-import * as maptalks from 'maptalks';
+import * as YY from 'yymap';
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
 import { getLinePosition } from './util/LineUtil';
 import { isGeoJSON, getGeoJSONCenter } from './util/GeoJSONUtil';
 import { addAttribute } from './util/ThreeAdaptUtil';
+const maptalks = YY.getNamespace().maptalks;
 
 function initColors(cs) {
     const colors = [];

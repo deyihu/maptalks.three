@@ -1,4 +1,4 @@
-import * as maptalks from 'maptalks';
+import * as YY from 'yymap';
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
 import { initVertexColors, getCenterOfPoints, getExtrudeGeometryParams } from './util/ExtrudeUtil';
@@ -8,7 +8,7 @@ import { getGeoJSONCenter, isGeoJSONPolygon } from './util/GeoJSONUtil';
 import { mergeBufferGeometries } from './util/MergeGeometryUtil';
 import { getActor } from './worker/MeshActor';
 import { addAttribute } from './util/ThreeAdaptUtil';
-
+const maptalks = YY.getNamespace().maptalks;
 
 function updateAttribute(data) {
     //arraybuffer data

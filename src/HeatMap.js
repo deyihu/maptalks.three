@@ -1,10 +1,11 @@
-import * as maptalks from 'maptalks';
+import * as YY from 'yymap';
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
 import HeatMapUitl from './util/heatmap/HeatMapUtil';
 import { Canvas } from './util/CanvasUtil';
 import Intensity from './util/heatmap/Intensity';
 import { addAttribute } from './util/ThreeAdaptUtil';
+const maptalks = YY.getNamespace().maptalks;
 
 const OPTIONS = {
     interactive: false,

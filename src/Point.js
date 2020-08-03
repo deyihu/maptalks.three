@@ -1,8 +1,9 @@
-import * as maptalks from 'maptalks';
+import * as YY from 'yymap';
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
 import { vector2Pixel } from './util/IdentifyUtil';
 import { addAttribute } from './util/ThreeAdaptUtil';
+const maptalks = YY.getNamespace().maptalks;
 
 const OPTIONS = {
     altitude: 0,

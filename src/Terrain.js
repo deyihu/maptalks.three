@@ -1,6 +1,7 @@
-import * as maptalks from 'maptalks';
+import * as YY from 'yymap';
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
+const maptalks = YY.getNamespace().maptalks;
 // import { addAttribute } from './util/ThreeAdaptUtil';
 const textureLoader = new THREE.TextureLoader();
 const canvas = document.createElement('canvas'), tileSize = 256;

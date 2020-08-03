@@ -1,6 +1,7 @@
-import * as maptalks from 'maptalks';
+import * as YY from 'yymap';
 import Terrain from './Terrain';
 import BaseVectorTileLayer from './BaseVectorTileLayer';
+const maptalks = YY.getNamespace().maptalks;
 
 const OPTIONS = {
     // worker: false

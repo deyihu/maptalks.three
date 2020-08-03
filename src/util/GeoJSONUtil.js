@@ -1,5 +1,6 @@
 /* eslint-disable indent */
-import * as maptalks from 'maptalks';
+import * as YY from 'yymap';
+const maptalks = YY.getNamespace().maptalks;
 
 const TYPES = ['Point', 'MultiPoint', 'LineString', 'MultiLineString', 'Polygon', 'MultiPolygon'];
 

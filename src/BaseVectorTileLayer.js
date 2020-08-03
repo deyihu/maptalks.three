@@ -1,6 +1,6 @@
-import * as maptalks from 'maptalks';
+import * as YY from 'yymap';
 import { generateImage } from './util/CanvasUtil';
-
+const maptalks = YY.getNamespace().maptalks;
 /**
  *
  */

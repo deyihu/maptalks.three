@@ -1,8 +1,9 @@
 import * as THREE from 'three';
-import * as maptalks from 'maptalks';
+import * as YY from 'yymap';
 import { isGeoJSONPolygon, spliteGeoJSONMulti, getGeoJSONCenter, isGeoJSONMulti, getGeoJSONCoordinates } from './GeoJSONUtil';
 import { extrudePolygon } from 'geometry-extrude';
 import { addAttribute } from './ThreeAdaptUtil';
+const maptalks = YY.getNamespace().maptalks;
 /**
  * this is for ExtrudeMesh util
  */

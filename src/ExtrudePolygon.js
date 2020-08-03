@@ -1,8 +1,9 @@
-import * as maptalks from 'maptalks';
+import * as YY from 'yymap';
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
 import { getExtrudeGeometry, initVertexColors } from './util/ExtrudeUtil';
 import { getGeoJSONCenter, isGeoJSONPolygon } from './util/GeoJSONUtil';
+const maptalks = YY.getNamespace().maptalks;
 
 const OPTIONS = {
     altitude: 0,

@@ -1,5 +1,6 @@
-import * as maptalks from 'maptalks';
+import * as YY from 'yymap';
 import BaseObject from './BaseObject';
+const maptalks = YY.getNamespace().maptalks;
 
 const OPTIONS = {
     altitude: 0,

@@ -1,4 +1,4 @@
-import * as maptalks from 'maptalks';
+import * as YY from 'yymap';
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
 import { getLinePosition } from './util/LineUtil';
@@ -7,6 +7,7 @@ import { getCenterOfPoints } from './util/ExtrudeUtil';
 import Line from './Line';
 import { getGeoJSONCenter, isGeoJSONLine } from './util/GeoJSONUtil';
 import { addAttribute } from './util/ThreeAdaptUtil';
+const maptalks = YY.getNamespace().maptalks;
 
 const OPTIONS = {
     altitude: 0,

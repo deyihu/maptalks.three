@@ -41,7 +41,7 @@
     "three": "^0.97.0"
   },
   "peerDependencies": {
-    "maptalks": ">=0.39.0"
+    "yymap": "^0.4.7"
   },
   "dependencies": {
     "geometry-extrude": "^0.1.2"

@@ -8,29 +8,29 @@ const pkg = require('./package.json');
 const banner = `/*!\n * ${pkg.name} v${pkg.version}\n * LICENSE : ${pkg.license}\n * (c) 2016-${new Date().getFullYear()} maptalks.org\n */`;
 
 let outro = pkg.name + ' v' + pkg.version;
-if (pkg.peerDependencies && pkg.peerDependencies['maptalks']) {
-    outro += `, requires maptalks@${pkg.peerDependencies.maptalks}.`;
+if (pkg.peerDependencies && pkg.peerDependencies['yymap']) {
+    outro += `, requires yymap@${pkg.peerDependencies.yymap}`;
 }
 
 outro = `typeof console !== 'undefined' && console.log('${outro}');`;
 const intro = `
     var IS_NODE = typeof exports === 'object' && typeof module !== 'undefined';
-    var maptalks = maptalks;
+    var YY = YY;
     if (IS_NODE) {
-        maptalks = maptalks || require('maptalks');
+        YY = YY || require('yymap');
     }
     var workerLoaded;
     function define(_, chunk) {
     if (!workerLoaded) {
-        if(maptalks&&maptalks.registerWorkerAdapter){
-            maptalks.registerWorkerAdapter('${pkg.name}', chunk);
+        if(YY&&YY.registerWorkerAdapter){
+            YY.registerWorkerAdapter('${pkg.name}', chunk);
             workerLoaded = true;
         }else{
-          console.warn('maptalks.registerWorkerAdapter is not defined,If you need to use ThreeVectorTileLayer,you can npm i maptalks@next,more https://github.com/maptalks/maptalks.js/tree/next');
+          console.warn('YY.registerWorkerAdapter is not defined');
         }
     } else {
-        var exports = IS_NODE ? module.exports : maptalks;
-        chunk(exports, maptalks);
+        var exports = IS_NODE ? module.exports : YY;
+        chunk(exports, YY);
     }
 }`;
 
@@ -76,12 +76,12 @@ module.exports = [
             commonjs(),
             babel()
         ],
-        external: ['maptalks'],
+        external: ['yymap'],
         output: {
             format: 'amd',
-            name: 'maptalks',
+            name: 'YY',
             globals: {
-                'maptalks': 'maptalks'
+                'YY': 'yymap'
             },
             extend: true,
             file: 'dist/worker.js'
@@ -92,53 +92,21 @@ module.exports = [
     },
     {
         input: 'index.js',
-        plugins: basePlugins.concat([uglify()]),
-        external: ['maptalks', 'three'],
-        output: {
-            'sourcemap': false,
-            'format': 'umd',
-            'name': 'maptalks',
-            'banner': banner,
-            'outro': outro,
-            'intro': intro,
-            'extend': true,
-            'globals': {
-                'maptalks': 'maptalks',
-                'THREE': 'three'
-            },
-            'file': 'dist/maptalks.three.min.js'
-        }
-    },
-    {
-        input: 'index.js',
         plugins: basePlugins,
-        external: ['maptalks', 'three'],
+        external: ['yymap', 'three'],
         output: {
             'sourcemap': true,
             'format': 'umd',
-            'name': 'maptalks',
+            'name': 'YY',
             'banner': banner,
             'outro': outro,
             'extend': true,
             'intro': intro,
             'globals': {
-                'maptalks': 'maptalks',
+                'YY': 'maptalks',
                 'THREE': 'three'
             },
             'file': 'dist/maptalks.three.js'
-        }
-    },
-    {
-        input: 'index.js',
-        plugins: basePlugins,
-        external: ['maptalks', 'three'],
-        output: {
-            'sourcemap': false,
-            'format': 'es',
-            'banner': banner,
-            'outro': outro,
-            'intro': intro,
-            'file': pkg.module
         }
     }
 ];

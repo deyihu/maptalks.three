@@ -1,8 +1,9 @@
-import * as maptalks from 'maptalks';
+import * as YY from 'yymap';
 import * as THREE from 'three';
 import { ThreeLayer } from './../index';
 import ToolTip from './ui/ToolTip';
 import Line2 from './util/fatline/Line2';
+const maptalks = YY.getNamespace().maptalks;
 
 const OPTIONS = {
     interactive: true,

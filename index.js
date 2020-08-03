@@ -1,5 +1,5 @@
 import './dist/worker';
-import * as maptalks from 'maptalks';
+import * as YY from 'yymap';
 import * as THREE from 'three';
 import BaseObject from './src/BaseObject';
 import Bar from './src/Bar';
@@ -22,6 +22,7 @@ import { setRaycasterLinePrecision } from './src/util/ThreeAdaptUtil';
 import GPUPick from './src/GPUPick';
 import FatLine from './src/FatLine';
 import FatLines from './src/FatLines';
+const maptalks = YY.getNamespace().maptalks;
 
 const options = {
     'renderer': 'gl',

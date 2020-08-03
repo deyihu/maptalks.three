@@ -1,4 +1,4 @@
-import * as maptalks from 'maptalks';
+import * as YY from 'yymap';
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
 import Point from './Point';
@@ -6,6 +6,7 @@ import { vector2Pixel } from './util/IdentifyUtil';
 import MergedMixin from './MergedMixin';
 import BBox from './util/BBox';
 import { addAttribute } from './util/ThreeAdaptUtil';
+const maptalks = YY.getNamespace().maptalks;
 
 const OPTIONS = {
     altitude: 0

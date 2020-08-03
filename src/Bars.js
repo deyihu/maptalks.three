@@ -1,11 +1,11 @@
-import * as maptalks from 'maptalks';
+import * as YY from 'yymap';
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
 import { getGeometry, initVertexColors, mergeBarGeometry } from './util/BarUtil';
 import Bar from './Bar';
 import MergedMixin from './MergedMixin';
 import { addAttribute } from './util/ThreeAdaptUtil';
-
+const maptalks = YY.getNamespace().maptalks;
 
 const OPTIONS = {
     coordinate: null,

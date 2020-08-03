@@ -1,7 +1,8 @@
-import * as maptalks from 'maptalks';
+import * as YY from 'yymap';
 import BaseObject from './BaseObject';
 import { getExtrudeLineGeometry } from './util/LineUtil';
 import { isGeoJSON, getGeoJSONCenter } from './util/GeoJSONUtil';
+const maptalks = YY.getNamespace().maptalks;
 
 const OPTIONS = {
     width: 3,

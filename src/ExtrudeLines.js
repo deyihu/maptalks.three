@@ -1,4 +1,4 @@
-import * as maptalks from 'maptalks';
+import * as YY from 'yymap';
 import * as THREE from 'three';
 import MergedMixin from './MergedMixin';
 import BaseObject from './BaseObject';
@@ -8,6 +8,7 @@ import ExtrudeLine from './ExtrudeLine';
 import { getGeoJSONCenter, isGeoJSON } from './util/GeoJSONUtil';
 import { mergeBufferGeometries } from './util/MergeGeometryUtil';
 import { addAttribute } from './util/ThreeAdaptUtil';
+const maptalks = YY.getNamespace().maptalks;
 
 const OPTIONS = {
     width: 3,

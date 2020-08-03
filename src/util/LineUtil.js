@@ -1,8 +1,9 @@
 import * as THREE from 'three';
-import * as maptalks from 'maptalks';
+import * as YY from 'yymap';
 import { extrudePolyline } from 'geometry-extrude';
 import { isGeoJSON, getGeoJSONCoordinates, getGeoJSONCenter } from './GeoJSONUtil';
 import { addAttribute } from './ThreeAdaptUtil';
+const maptalks = YY.getNamespace().maptalks;
 const COMMA = ',';
 
 /**

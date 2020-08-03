@@ -1,8 +1,9 @@
-import * as maptalks from 'maptalks';
+import * as YY from 'yymap';
 import * as THREE from 'three';
 import { pushQueue, outQueue, getQueues, nextLoop } from './queue/TileDataQueue';
 import { isGeoJSONPolygon, isGeoJSONLine, spliteGeoJSONMulti, isGeoJSONPoint, getGeoJSONCoordinates } from './util/GeoJSONUtil';
 import BaseVectorTileLayer from './BaseVectorTileLayer';
+const maptalks = YY.getNamespace().maptalks;
 
 const OPTIONS = {
     worker: false
