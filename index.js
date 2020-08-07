@@ -22,6 +22,11 @@ import { setRaycasterLinePrecision } from './src/util/ThreeAdaptUtil';
 import GPUPick from './src/GPUPick';
 import FatLine from './src/FatLine';
 import FatLines from './src/FatLines';
+
+import LineMaterial from './src/util/fatline/LineMaterial';
+import LineGeometry from './src/util/fatline/LineGeometry';
+import Line2 from './src/util/fatline/Line2';
+import { triangulate, extrudePolygon, extrudePolyline } from 'geometry-extrude';
 const maptalks = YY.getNamespace().maptalks;
 
 const options = {
@@ -981,5 +986,7 @@ function getTargetZoom(map) {
 }
 
 export {
-    ThreeLayer, ThreeRenderer, BaseObject
+    ThreeLayer, ThreeRenderer, BaseObject,
+    LineMaterial, LineGeometry, Line2,
+    triangulate, extrudePolygon, extrudePolyline
 };

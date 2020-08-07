@@ -74,6 +74,34 @@ class BaseObject extends maptalks.Eventable(Base) {
         this.id = id;
     }
 
+    get geometry() {
+        return this.getObject3d().geometry;
+    }
+
+    get material() {
+        return this.getObject3d().material;
+    }
+
+    get position() {
+        return this.getObject3d().position;
+    }
+
+    get scale() {
+        return this.getObject3d().scale;
+    }
+
+    get rotation() {
+        return this.getObject3d().rotation;
+    }
+
+    get layers() {
+        return this.getObject3d().layers;
+    }
+
+    get children() {
+        return this.getObject3d().children;
+    }
+
     addTo(layer) {
         if (layer instanceof ThreeLayer) {
             layer.addMesh(this);
@@ -374,6 +402,65 @@ class BaseObject extends maptalks.Eventable(Base) {
         return this;
     }
 
+
+    bindTooltip(content, options) {
+        return this.setToolTip(content, Object.assign({
+            showTimeout: 0,
+            eventsPropagation: true,
+            dx: 10
+        }, options));
+    }
+
+    bindToolTip(content, options) {
+        return this.setToolTip(content, Object.assign({
+            showTimeout: 0,
+            eventsPropagation: true,
+            dx: 10
+        }, options));
+    }
+
+    removeTooltip() {
+        return this.removeToolTip();
+    }
+
+    bindPopup(content, options = {}) {
+        options.content = content;
+        options = Object.assign({ animationDuration: 0 }, options);
+        this.setInfoWindow(options);
+        return this;
+    }
+
+    getPopup() {
+        return this.getInfoWindow();
+    }
+
+    openPopup(coordinate) {
+        return this.openInfoWindow(coordinate);
+    }
+
+    closePopup() {
+        return this.closeInfoWindow();
+    }
+
+    removePopup() {
+        return this.removeInfoWindow();
+    }
+
+    setHeight(altitude) {
+        return this.setAltitude(altitude);
+    }
+
+    getHeight() {
+        return this.getAltitude();
+    }
+
+    addBloom() {
+        this.layers.enable(1);
+    }
+
+    removeBloom() {
+        this.layers.enable(0);
+    }
 
     /**
      * more method support
