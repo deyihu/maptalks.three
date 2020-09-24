@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import * as YY from 'yymap';
-import { extrudePolyline } from 'geometry-extrude';
+import { extrudePolyline } from 'deyihu-geometry-extrude';
 import { isGeoJSON, getGeoJSONCoordinates, getGeoJSONCenter } from './GeoJSONUtil';
 import { addAttribute } from './ThreeAdaptUtil';
 const maptalks = YY.getNamespace().maptalks;

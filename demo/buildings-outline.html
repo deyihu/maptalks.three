@@ -7,7 +7,10 @@
     <link type="text/css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.css">
     <script type="text/javascript" src="./js/maptalks.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/three@0.97.0/build/three.min.js"></script>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/maptalks.three@latest/dist/maptalks.three.js"></script>
+    <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/maptalks.three@latest/dist/maptalks.three.js"></script>
+    <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/three@0.97.0/examples/js/libs/stats.min.js"></script>
     <script type="text/javascript" src="buildings.js"></script>
     <style>
         html,
@@ -61,13 +64,33 @@
         var meshs = [];
         var material = getBuildingsMaterial();
         material.vertexColors = THREE.VertexColors;
-        const topColor = new THREE.Color('red');
+
+        //https://zhuanlan.zhihu.com/p/199353080
+        const lineMaterial = new THREE.LineBasicMaterial({
+            // 线的颜色
+            color: "rgb(15,159,190)",
+            transparent: true,
+            linewidth: 1,
+            opacity: 0.7,
+            //depthTest: true,
+        });
+        //解决z-flighting
+        lineMaterial.polygonOffset = true;
+        lineMaterial.depthTest = true;
+        lineMaterial.polygonOffsetFactor = 1;
+        lineMaterial.polygonOffsetUnits = 1.0;
+
 
         threeLayer.prepareToDraw = function (gl, scene, camera) {
+
+            stats = new Stats();
+            stats.domElement.style.zIndex = 100;
+            document.getElementById('map').appendChild(stats.domElement);
+
             var light = new THREE.DirectionalLight(0xffffff);
             light.position.set(0, -10, 10).normalize();
             scene.add(light);
-            camera.add(new THREE.PointLight('#fff', 2));
+            camera.add(new THREE.PointLight('#fff', 0.5));
 
             var heightPerLevel = 10;
             var polygons = features.map(f => {
@@ -80,50 +103,11 @@
             });
 
 
-            const mesh = threeLayer.toExtrudePolygons(polygons, { interactive: false }, material);
-
-            const bufferGeometry = mesh.getObject3d().geometry;
-            const geometry = new THREE.Geometry().fromBufferGeometry(bufferGeometry);
-
-            const { vertices, faces, faceVertexUvs } = geometry;
-            for (let i = 0, len = faces.length; i < len; i++) {
-                const { a, b, c } = faces[i];
-                const p1 = vertices[a], p2 = vertices[b], p3 = vertices[c];
-                //top face
-                if (p1.z > 0 && p2.z > 0 && p3.z > 0) {
-                    const vertexColors = faces[i].vertexColors;
-                    for (let j = 0, len1 = vertexColors.length; j < len1; j++) {
-                        vertexColors[j].r = topColor.r;
-                        vertexColors[j].g = topColor.g;
-                        vertexColors[j].b = topColor.b;
-                    }
-                    const uvs = faceVertexUvs[0][i];
-                    for (let j = 0, len1 = uvs.length; j < len1; j++) {
-                        uvs[j].x = 0;
-                        uvs[j].y = 0;
-                    }
-                }
-            }
-            mesh.getObject3d().geometry = new THREE.BufferGeometry().fromGeometry(geometry);
-            bufferGeometry.dispose();
-            geometry.dispose();
-            // const position = geometry.attributes.position.array;
-            // const uv = geometry.attributes.uv.array;
-            // const index = geometry.index.array;
-            // for (let i = 0, len = index.length; i < len; i += 3) {
-            //     const a = index[i], b = index[i + 1], c = index[i + 2];
-            //     const z1 = position[a * 3 + 2], z2 = position[b * 3 + 2], z3 = position[c * 3 + 2];
-            //     // top vertex
-            //     if (z1 > 0 && z2 > 0 && z3 > 0) {
-            //         uv[a * 2] = 0;
-            //         uv[a * 2 + 1] =  0;
-            //         uv[b * 2] =  0;
-            //         uv[b * 2 + 2] =  0;
-            //         uv[c * 2] =  0;
-            //         uv[c * 2 + 1] =  0;
-            //     }
-            // }
+            const mesh = threeLayer.toExtrudePolygons(polygons, { interactive: false, topColor: '#fff' }, material);
             meshs.push(mesh);
+
+            var outLine = new OutLine(mesh, { interactive: false }, lineMaterial, threeLayer);
+            meshs.push(outLine);
             threeLayer.addMesh(meshs);
             initGui();
             animation();
@@ -132,25 +116,23 @@
 
 
         function getBuildingsMaterial(color = 'red') {
-            const texture = new THREE.TextureLoader().load('./data/building.png');
-            texture.needsUpdate = true; //使用贴图时进行更新
-            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-            // texture.repeat.set(0.002, 0.002);
-            texture.repeat.set(1, 4);
             const material = new THREE.MeshPhongMaterial({
-                map: texture,
+                // map: texture,
                 transparent: true,
-                color: '#fff'
+                color: 'rgb(0,0,0)'
             });
             return material;
         }
 
         function animation() {
             // layer animation support Skipping frames
-            threeLayer._needsUpdate = !threeLayer._needsUpdate;
-            if (threeLayer._needsUpdate) {
-                threeLayer.renderScene();
+            if (!map.isInteracting()) {
+                threeLayer._needsUpdate = !threeLayer._needsUpdate;
+                if (threeLayer._needsUpdate) {
+                    threeLayer.renderScene();
+                }
             }
+            stats.update();
             requestAnimationFrame(animation);
         }
 
@@ -162,6 +144,8 @@
                 show: true,
                 opacity: 1,
                 altitude: 0,
+                lineColor: lineMaterial.color.getStyle(),
+                lineOpacity: lineMaterial.opacity,
                 animateShow: animateShow
             };
             var gui = new dat.GUI();
@@ -174,15 +158,17 @@
             });
             gui.addColor(params, 'color').name('building color').onChange(function () {
                 material.color.set(params.color);
-                meshs.forEach(function (mesh) {
-                    mesh.setSymbol(material);
-                });
             });
-            gui.add(params, 'opacity', 0, 1).onChange(function () {
+            gui.add(params, 'opacity', 0, 1).name('building opacity').onChange(function () {
                 material.opacity = params.opacity;
-                meshs.forEach(function (mesh) {
-                    mesh.setSymbol(material);
-                });
+            });
+
+            gui.addColor(params, 'lineColor').name('line color').onChange(function () {
+                lineMaterial.color.set(params.lineColor);
+            });
+
+            gui.add(params, 'lineOpacity', 0, 1).onChange(function () {
+                lineMaterial.opacity = params.lineOpacity;
             });
             gui.add(params, 'altitude', 0, 300).onChange(function () {
                 meshs.forEach(function (mesh) {
@@ -198,6 +184,33 @@
                     duration: 3000
                 });
             });
+        }
+
+
+        //default values
+        var OPTIONS = {
+            altitude: 0
+        };
+
+        //https://zhuanlan.zhihu.com/p/199353080
+        class OutLine extends maptalks.BaseObject {
+            constructor(mesh, options, material, layer) {
+                options = maptalks.Util.extend({}, OPTIONS, options, { layer });
+                super();
+                //Initialize internal configuration
+                // https://github.com/maptalks/maptalks.three/blob/1e45f5238f500225ada1deb09b8bab18c1b52cf2/src/BaseObject.js#L135
+                this._initOptions(options);
+
+                const edges = new THREE.EdgesGeometry(mesh.getObject3d().geometry, 1);
+                const lineS = new THREE.LineSegments(edges, material);
+                this._createGroup();
+                this.getObject3d().add(lineS);
+                //Initialize internal object3d
+                // https://github.com/maptalks/maptalks.three/blob/1e45f5238f500225ada1deb09b8bab18c1b52cf2/src/BaseObject.js#L140
+
+                //set object3d position
+                this.getObject3d().position.copy(mesh.getObject3d().position);
+            }
         }
 
     </script>

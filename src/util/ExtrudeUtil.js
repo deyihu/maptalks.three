@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import * as YY from 'yymap';
 import { isGeoJSONPolygon, spliteGeoJSONMulti, getGeoJSONCenter, isGeoJSONMulti, getGeoJSONCoordinates } from './GeoJSONUtil';
-import { extrudePolygon } from 'geometry-extrude';
+import { extrudePolygon } from 'deyihu-geometry-extrude';
 import { addAttribute } from './ThreeAdaptUtil';
 const maptalks = YY.getNamespace().maptalks;
 /**
@@ -48,12 +48,20 @@ export function getExtrudeGeometry(polygon, height, layer, center) {
 }
 
 
-export function getExtrudeGeometryParams(polygon, height, layer, center) {
+export function getExtrudeGeometryParams(polygon, height, layer, center, altCache) {
     const datas = getPolygonPositions(polygon, layer, center);
     const shapes = datas;
     //Possible later use of geojson
     if (!shapes) return null;
-    height = layer.distanceToVector3(height, height).x;
+    //Reduce height and repeat calculation
+    if (altCache) {
+        if (altCache[height] == null) {
+            altCache[height] = layer.distanceToVector3(height, height).x;
+        }
+        height = altCache[height];
+    } else {
+        height = layer.distanceToVector3(height, height).x;
+    }
     const { position, normal, uv, indices } = extrudePolygon(shapes, {
         depth: height
     });
@@ -77,9 +85,9 @@ export function initVertexColors(geometry, color, _topColor) {
     for (let i = 0; i < len; i += 3) {
         const z = position[i + 2];
         if (z > 0) {
-            colors.push(topColor.r, topColor.r, topColor.b);
+            colors.push(topColor.r, topColor.g, topColor.b);
         } else {
-            colors.push(bottomColor.r, bottomColor.r, bottomColor.b);
+            colors.push(bottomColor.r, bottomColor.g, bottomColor.b);
         }
     }
     addAttribute(geometry, 'color', new THREE.Float32BufferAttribute(colors, 3, true));
