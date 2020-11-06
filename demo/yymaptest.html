@@ -6,7 +6,7 @@
 <title>地图 - 基本地图</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/yymap/dist/yy/yy.min.css" />
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/yymap/dist/yy/yy.min.js"></script>
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/three@0.97.0/build/three.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/three@0.104.0/build/three.min.js"></script>
 <script type="text/javascript" src="./../dist/maptalks.three.js"></script>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/three@0.97.0/examples/js/libs/stats.min.js"></script>
 <style type="text/css">
@@ -43,7 +43,7 @@
 
 
         // the ThreeLayer to draw buildings
-        var threeLayer = new maptalks.ThreeLayer('t', {
+        var threeLayer = new YY.ThreeLayer('t', {
             forceRenderOnMoving: true,
             forceRenderOnRotating: true
             // animation: true
@@ -111,7 +111,7 @@
                 , [13.348448231846305, 52.537668773653735]
             ];
             points = lnglats.map(lnglat => {
-                const material = createMateria();
+                const material = createMateria('white');
                 const point = threeLayer.toPoint(lnglat, { height: 100 * Math.random() }, material);
                 // tooltip test
                 point.setToolTip(point.getId(), {

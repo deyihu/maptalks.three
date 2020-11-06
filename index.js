@@ -26,14 +26,15 @@ import FatLines from './src/FatLines';
 import LineMaterial from './src/util/fatline/LineMaterial';
 import LineGeometry from './src/util/fatline/LineGeometry';
 import Line2 from './src/util/fatline/Line2';
-import { triangulate, extrudePolygon, extrudePolyline } from 'geometry-extrude';
+import { triangulate, extrudePolygon, extrudePolyline } from 'deyihu-geometry-extrude';
 const maptalks = YY.getNamespace().maptalks;
 
 const options = {
     'renderer': 'gl',
     'doubleBuffer': false,
     'glOptions': null,
-    'geometryEvents': true
+    'geometryEvents': true,
+    'identifyCountOnEvent': 0
 };
 
 const RADIAN = Math.PI / 180;
@@ -64,7 +65,7 @@ const EVENTS = [
     'touchend'
 ];
 
-const MATRIX4 = new THREE.Matrix4();
+// const MATRIX4 = new THREE.Matrix4();
 
 /**
  * A Layer to render with THREE.JS (http://threejs.org), the most popular library for WebGL. <br>
@@ -410,7 +411,32 @@ class ThreeLayer extends maptalks.CanvasLayer {
     }
 
 
+    getBaseObjects() {
+        return this.getMeshes().filter((mesh => {
+            return mesh instanceof BaseObject;
+        }));
+    }
 
+
+    getMeshes() {
+        const scene = this.getScene();
+        if (!scene) {
+            return [];
+        }
+        const meshes = [];
+        for (let i = 0, len = scene.children.length; i < len; i++) {
+            const child = scene.children[i];
+            if (child instanceof THREE.Object3D && !(child instanceof THREE.Camera)) {
+                meshes.push(child.__parent || child);
+            }
+        }
+        return meshes;
+    }
+
+
+    clear() {
+        return this.clearMesh();
+    }
 
     clearMesh() {
         const scene = this.getScene();
@@ -418,8 +444,15 @@ class ThreeLayer extends maptalks.CanvasLayer {
             return this;
         }
         for (var i = scene.children.length - 1; i >= 0; i--) {
-            if (scene.children[i] instanceof THREE.Mesh) {
-                scene.remove(scene.children[i]);
+            const child = scene.children[i];
+            if (child instanceof THREE.Object3D && !(child instanceof THREE.Camera)) {
+                scene.remove(child);
+                const parent = child.__parent;
+                if (parent && parent instanceof BaseObject) {
+                    parent.isAdd = false;
+                    parent._fire('remove', { target: parent });
+                    delete this._animationBaseObjectMap[child.uuid];
+                }
             }
         }
         return this;
@@ -679,7 +712,12 @@ class ThreeLayer extends maptalks.CanvasLayer {
         }
         this._mousemoveTimeOut = now;
         map.resetCursor('default');
-        const baseObjects = this.identify(coordinate);
+        const identifyCountOnEvent = this.options['identifyCountOnEvent'];
+        let count = Math.max(0, maptalks.Util.isNumber(identifyCountOnEvent) ? identifyCountOnEvent : 0);
+        if (count === 0) {
+            count = Infinity;
+        }
+        const baseObjects = this.identify(coordinate, { count });
         const scene = this.getScene();
         if (baseObjects.length === 0 && scene) {
             for (let i = 0, len = scene.children.length; i < len; i++) {
@@ -883,6 +921,7 @@ class ThreeRenderer extends maptalks.renderer.CanvasLayerRenderer {
     }
 
     _initThreeRenderer() {
+        this.matrix4 = new THREE.Matrix4();
         const renderer = new THREE.WebGLRenderer({ 'context': this.gl, alpha: true });
         renderer.autoClear = false;
         renderer.setClearColor(new THREE.Color(1, 1, 1), 0);
@@ -964,7 +1003,9 @@ class ThreeRenderer extends maptalks.renderer.CanvasLayerRenderer {
         const camera = this.camera;
         camera.matrix.elements = map.cameraWorldMatrix;
         camera.projectionMatrix.elements = map.projMatrix;
-        camera.projectionMatrixInverse.elements = MATRIX4.getInverse(camera.projectionMatrix).elements;
+        //https://github.com/mrdoob/three.js/commit/d52afdd2ceafd690ac9e20917d0c968ff2fa7661
+        const inverseName = this.matrix4.invert ? 'invert' : 'getInverse';
+        camera.projectionMatrixInverse.elements = this.matrix4[inverseName](camera.projectionMatrix).elements;
     }
 
     _createGLContext(canvas, options) {
