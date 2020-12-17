@@ -87,6 +87,12 @@ class ExtrudePolygons extends MergedMixin(BaseObject) {
                     this.getObject3d().geometry = bufferGeometry;
                     this.getObject3d().material.needsUpdate = true;
                     this._geometryCache = bufferGeometry.clone();
+                    this._setPickObject3d();
+                    this._init();
+                    if (this.isAdd) {
+                        const pick = this.getLayer().getPick();
+                        pick.add(this.pickObject3d);
+                    }
                     this._fire('workerload', { target: this });
                 }
             });
@@ -161,8 +167,12 @@ class ExtrudePolygons extends MergedMixin(BaseObject) {
         this.faceIndex = null;
         this._geometryCache = bufferGeometry.clone();
         this.isHide = false;
-
+        this._colorMap = {};
         this._initBaseObjectsEvent(extrudePolygons);
+        if (!asynchronous) {
+            this._setPickObject3d();
+            this._init();
+        }
     }
 
     // eslint-disable-next-line consistent-return
@@ -182,19 +192,9 @@ class ExtrudePolygons extends MergedMixin(BaseObject) {
         }
     }
 
-    // eslint-disable-next-line consistent-return
-    _getIndex(faceIndex) {
-        if (faceIndex == null) {
-            faceIndex = this.faceIndex;
-        }
-        if (faceIndex != null) {
-            for (let i = 0, len = this._faceMap.length; i < len; i++) {
-                const [start, end] = this._faceMap[i];
-                if (start <= faceIndex && faceIndex < end) {
-                    return i;
-                }
-            }
-        }
+    // eslint-disable-next-line no-unused-vars
+    identify(coordinate) {
+        return this.picked;
     }
 }
 

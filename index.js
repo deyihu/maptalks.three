@@ -22,6 +22,16 @@ import { setRaycasterLinePrecision } from './src/util/ThreeAdaptUtil';
 import GPUPick from './src/GPUPick';
 import FatLine from './src/FatLine';
 import FatLines from './src/FatLines';
+import Box from './src/Box';
+import Boxs from './src/Boxs';
+import MergedMixin from './src/MergedMixin';
+import * as GeoJSONUtil from './src/util/GeoJSONUtil';
+import * as GeoUtil from './src/util/GeoUtil';
+import * as MergeGeometryUtil from './src/util/MergeGeometryUtil';
+import * as ExtrudeUtil from './src/util/ExtrudeUtil';
+import * as LineUtil from './src/util/LineUtil';
+import * as IdentifyUtil from './src/util/IdentifyUtil';
+import * as geometryExtrude from 'deyihu-geometry-extrude';
 
 import LineMaterial from './src/util/fatline/LineMaterial';
 import LineGeometry from './src/util/fatline/LineGeometry';
@@ -410,6 +420,26 @@ class ThreeLayer extends maptalks.CanvasLayer {
         return new FatLines(lineStrings, options, material, this);
     }
 
+    /**
+     *
+     * @param {*} coorindate
+     * @param {*} options
+     * @param {*} material
+     */
+    toBox(coorindate, options, material) {
+        return new Box(coorindate, options, material, this);
+    }
+
+    /**
+     *
+     * @param {*} points
+     * @param {*} options
+     * @param {*} material
+     */
+    toBoxs(points, options, material) {
+        return new Boxs(points, options, material, this);
+    }
+
 
     getBaseObjects() {
         return this.getMeshes().filter((mesh => {
@@ -663,6 +693,16 @@ class ThreeLayer extends maptalks.CanvasLayer {
                 }
             });
         }
+        const len = baseObjects.length;
+        for (let i = 0; i < len; i++) {
+            if (baseObjects[i]) {
+                for (let j = i + 1; j < len; j++) {
+                    if (baseObjects[i] === baseObjects[j]) {
+                        baseObjects.splice(j, 1);
+                    }
+                }
+            }
+        }
         options = maptalks.Util.extend({}, options);
         const count = options.count;
         return (maptalks.Util.isNumber(count) && count > 0 ? baseObjects.slice(0, count) : baseObjects);
@@ -706,7 +746,7 @@ class ThreeLayer extends maptalks.CanvasLayer {
         const { type, coordinate } = e;
         const now = maptalks.Util.now();
         if (this._mousemoveTimeOut && type === 'mousemove') {
-            if (now - this._mousemoveTimeOut < 16) {
+            if (now - this._mousemoveTimeOut < 64) {
                 return this;
             }
         }
@@ -1004,8 +1044,11 @@ class ThreeRenderer extends maptalks.renderer.CanvasLayerRenderer {
         camera.matrix.elements = map.cameraWorldMatrix;
         camera.projectionMatrix.elements = map.projMatrix;
         //https://github.com/mrdoob/three.js/commit/d52afdd2ceafd690ac9e20917d0c968ff2fa7661
-        const inverseName = this.matrix4.invert ? 'invert' : 'getInverse';
-        camera.projectionMatrixInverse.elements = this.matrix4[inverseName](camera.projectionMatrix).elements;
+        if (this.matrix4.invert) {
+            camera.projectionMatrixInverse.elements = this.matrix4.copy(camera.projectionMatrix).invert().elements;
+        } else {
+            camera.projectionMatrixInverse.elements = this.matrix4.getInverse(camera.projectionMatrix).elements;
+        }
     }
 
     _createGLContext(canvas, options) {
@@ -1034,5 +1077,7 @@ function getTargetZoom(map) {
 export {
     ThreeLayer, ThreeRenderer, BaseObject,
     LineMaterial, LineGeometry, Line2,
-    triangulate, extrudePolygon, extrudePolyline
+    triangulate, extrudePolygon, extrudePolyline, MergedMixin,
+    GeoJSONUtil, MergeGeometryUtil, GeoUtil, ExtrudeUtil, LineUtil,
+    IdentifyUtil, geometryExtrude
 };
