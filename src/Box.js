@@ -1,8 +1,9 @@
 
-import * as maptalks from 'maptalks';
+import * as YY from 'yymap';
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
 import { getDefaultBoxGeometry, initVertexColors } from './util/BarUtil';
+const maptalks = YY.getNamespace().maptalks;
 
 const OPTIONS = {
     radius: 10,

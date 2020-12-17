@@ -1,7 +1,8 @@
 import * as THREE from 'three';
-import * as maptalks from 'maptalks';
+import * as YY from 'yymap';
 import { mergeBufferGeometries } from './MergeGeometryUtil';
 import { addAttribute } from './ThreeAdaptUtil';
+const maptalks = YY.getNamespace().maptalks;
 const barGeometryCache = {};
 const KEY = '-';
 const defaultBoxGeometry = new THREE.BoxBufferGeometry(1, 1, 1);

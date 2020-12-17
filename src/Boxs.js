@@ -1,10 +1,11 @@
 
-import * as maptalks from 'maptalks';
+import * as YY from 'yymap';
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
 import Box from './Box';
 import MergedMixin from './MergedMixin';
 import { getCenterOfPoints, getDefaultBoxGeometry, initVertexColors, mergeBarGeometry } from './util/BarUtil';
+const maptalks = YY.getNamespace().maptalks;
 
 const OPTIONS = {
     radius: 10,
