@@ -1,6 +1,7 @@
 import * as YY from 'yymap';
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
+import { distanceToVector3 } from './util';
 const maptalks = YY.getNamespace().maptalks;
 // import { addAttribute } from './util/ThreeAdaptUtil';
 const textureLoader = new THREE.TextureLoader();
@@ -90,11 +91,12 @@ class Terrain extends BaseObject {
                 const width = imageWidth, height = imageHeight;
                 const imgdata = getRGBData(rgbImg, width, height);
                 let idx = 0;
+                const cache = {};
                 //rgb to height  https://docs.mapbox.com/help/troubleshooting/access-elevation-data/
                 for (let i = 0, len = imgdata.length; i < len; i += 4) {
                     const R = imgdata[i], G = imgdata[i + 1], B = imgdata[i + 2];
                     const height = -10000 + ((R * 256 * 256 + G * 256 + B) * 0.1);
-                    const z = layer.distanceToVector3(height, height).x;
+                    const z = distanceToVector3(cache, height, layer);
                     geometry.attributes.position.array[idx * 3 + 2] = z;
                     idx++;
                 }
@@ -113,6 +115,7 @@ class Terrain extends BaseObject {
                 console.error(`not load ${rgbImg.src}`);
             };
         }
+        this.type = 'Terrain';
     }
 }
 

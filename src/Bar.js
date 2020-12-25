@@ -28,7 +28,6 @@ class Bar extends BaseObject {
         // Meter as unit
         options._radius = this.options.radius;
         options._height = this.options.height;
-        this._h = options.height;
         const geometry = getGeometry(options);
         if (topColor && !material.map) {
             initVertexColors(geometry, bottomColor, topColor, 'z', options.height / 2);
@@ -38,6 +37,7 @@ class Bar extends BaseObject {
         const z = layer.distanceToVector3(altitude, altitude).x;
         const position = layer.coordinateToVector3(coordinate, z);
         this.getObject3d().position.copy(position);
+        this.type = 'Bar';
         // this.getObject3d().rotation.x = Math.PI / 2;
         // this.getObject3d().translateY(options.height / 2);
     }

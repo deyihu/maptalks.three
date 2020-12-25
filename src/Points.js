@@ -6,6 +6,7 @@ import { vector2Pixel } from './util/IdentifyUtil';
 import MergedMixin from './MergedMixin';
 import BBox from './util/BBox';
 import { addAttribute } from './util/ThreeAdaptUtil';
+import { distanceToVector3 } from './util';
 const maptalks = YY.getNamespace().maptalks;
 
 const OPTIONS = {
@@ -44,13 +45,14 @@ class Points extends MergedMixin(BaseObject) {
         const gridslen = grids.length;
 
         const vs = [], vectors = [], colors = [], pointMeshes = [], geometriesAttributes = [];
+        const cache = {};
         for (let i = 0, len = points.length; i < len; i++) {
             let { coordinate, height, color } = points[i];
             if (color) {
                 color = (color instanceof THREE.Color ? color : new THREE.Color(color));
                 colors.push(color.r, color.g, color.b);
             }
-            const z = layer.distanceToVector3(height, height).x;
+            const z = distanceToVector3(cache, height, layer);
             const v = layer.coordinateToVector3(coordinate, z);
             const v1 = v.clone().sub(centerPt);
             vs.push(v1.x, v1.y, v1.z);
@@ -100,6 +102,7 @@ class Points extends MergedMixin(BaseObject) {
         this._initBaseObjectsEvent(pointMeshes);
         this._grids = grids;
         this._bindMapEvents();
+        this.type = 'Points';
     }
 
     _bindMapEvents() {

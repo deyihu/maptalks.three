@@ -97,6 +97,7 @@ class Lines extends MergedMixin(BaseObject) {
         this._initBaseObjectsEvent(lines);
         this._setPickObject3d();
         this._init();
+        this.type = 'Lines';
     }
 
     // eslint-disable-next-line consistent-return
@@ -118,7 +119,7 @@ class Lines extends MergedMixin(BaseObject) {
     }
 
     _setPickObject3d() {
-        const geometry = this.getObject3d().geometry.clone();
+        const geometry = this._geometryCache || this.getObject3d().geometry.clone();
         const pick = this.getLayer().getPick();
         const { _geometriesAttributes } = this;
         const colors = [];

@@ -119,6 +119,7 @@ class ExtrudeLineTrail extends BaseObject {
             centerPt
         };
         this._init(this._params);
+        this.type = 'ExtrudeLineTrail';
 
     }
 

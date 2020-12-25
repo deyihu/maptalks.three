@@ -72,6 +72,7 @@ class BaseObject extends maptalks.Eventable(Base) {
             id = maptalks.Util.GUID();
         }
         this.id = id;
+        this.type = null;
     }
 
     get geometry() {
@@ -139,7 +140,7 @@ class BaseObject extends maptalks.Eventable(Base) {
     }
 
     getType() {
-        return this.constructor.name;
+        return this.type;
     }
 
     getOptions() {
