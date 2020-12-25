@@ -33,8 +33,8 @@
             bearing: 0,
         });
 
-        const googleTileLayer = YY.LayerLookup.lookup('google');
-        map.addBaseLayer(googleTileLayer);
+        // const googleTileLayer = YY.LayerLookup.lookup('google');
+        // map.addBaseLayer(googleTileLayer);
 
         map.on('click', function (e) {
             console.log(e.coordinate.toArray());
@@ -73,9 +73,9 @@
                 // vertexColors: THREE.VertexColors,
                 //  transparent: true
                 // color: 0xffffff,
-                size: 40,
+                size: 30,
                 transparent: true, //使材质透明
-                blending: THREE.AdditiveBlending,
+                // blending: THREE.AdditiveBlending,
                 depthTest: true, //深度测试关闭，不消去场景的不可见面
                 depthWrite: false,
                 map: new THREE.TextureLoader().load('./data/' + idx + '.svg')
@@ -112,7 +112,7 @@
             ];
             points = lnglats.map(lnglat => {
                 const material = createMateria('white');
-                const point = threeLayer.toPoint(lnglat, { height: 100 * Math.random() }, material);
+                const point = threeLayer.toPoint(lnglat, { }, material);
                 // tooltip test
                 point.setToolTip(point.getId(), {
                     showTimeout: 0,
