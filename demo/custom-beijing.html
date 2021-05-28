@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>custom-pixel-altitude</title>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/dat.gui@0.7.6/build/dat.gui.min.js"></script>
+    <link type="text/css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maptalks/dist/maptalks.css">
+    <script type="text/javascript" src="./js/maptalks.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/three@0.104.0/build/three.min.js"></script>
+    <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/three@0.104.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/three@0.104.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/three@0.104.0/examples/js/shaders/CopyShader.js"></script>
+    <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/three@0.104.0/examples/js/postprocessing/ShaderPass.js"></script>
+
+    <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/three@0.104.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+
+    <!-- issue  https://github.com/mrdoob/three.js/issues/14104  -->
+    <!-- <script type="text/javascript"
+    src="https://cdn.jsdelivr.net/npm/three@0.104.0/examples/js/postprocessing/UnrealBloomPass.js"></script> -->
+    <script type="text/javascript" src="./js/UnrealBloomPass.js"></script>
+
+    <!--fatline script-->
+    <!-- https://threejs.org/examples/#webgl_lines_fat -->
+    <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/three@0.104.0/examples/js/lines/LineMaterial.js"></script>
+    <!---->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/lz-string@1.4.4/libs/lz-string.min.js"></script>
+    <!-- <script type="text/javascript" src="./https://cdn.jsdelivr.net/npm/maptalks.three@latest/dist/maptalks.three.js"></script> -->
+    <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/maptalks.three@latest/dist/maptalks.three.js"></script>
+    <script type="text/javascript" src="./js/geoutil.js"></script>
+    <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/three@0.104.0/examples/js/libs/stats.min.js"></script>
+    <style>
+        html,
+        body {
+            margin: 0px;
+            height: 100%;
+            width: 100%;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            background-color: black;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map" class="map">
+
+    </div>
+    <script>
+
+        var map = new maptalks.Map("map", {
+            "center": [116.3540142640108, 39.75145237222958], "zoom": 10.645608503087308, "pitch": 51.60000000000005, "bearing": -4.500000000000227,
+
+            centerCross: true,
+            doubleClickZoom: false,
+            // baseLayer: new maptalks.TileLayer('tile', {
+            //     urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+            //     subdomains: ['a', 'b', 'c', 'd'],
+            //     attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+            // })
+        });
+
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            forceRenderOnMoving: true,
+            forceRenderOnRotating: true
+            // animation: true
+        });
+
+
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+
+            stats = new Stats();
+            stats.domElement.style.zIndex = 100;
+            document.getElementById('map').appendChild(stats.domElement);
+
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+            this.initBloom();
+            this.setRendererRenderScene();
+            addLines();
+        };
+        threeLayer.addTo(map);
+
+        /**
+    * initBloom
+    * */
+        maptalks.ThreeLayer.prototype.initBloom = function () {
+            const params = {
+                exposure: 1,
+                bloomStrength: 7.5,
+                bloomThreshold: 0,
+                bloomRadius: 0,
+                debug: false
+            };
+            const renderer = this.getThreeRenderer();
+            const size = this.getMap().getSize();
+            this.composer = new THREE.EffectComposer(renderer);
+            this.composer.setSize(size.width, size.height);
+
+            const scene = this.getScene(), camera = this.getCamera();
+            this.renderPass = new THREE.RenderPass(scene, camera);
+
+            this.composer.addPass(this.renderPass);
+
+            const bloomPass = this.bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(size.width, size.height));
+            bloomPass.renderToScreen = true;
+            bloomPass.threshold = params.bloomThreshold;
+            bloomPass.strength = params.bloomStrength;
+            bloomPass.radius = params.bloomRadius;
+
+            // composer.setSize(size.width, size.height);
+            // composer.addPass(renderPass);
+            this.composer.addPass(bloomPass);
+            this.bloomEnable = true;
+        }
+
+        /*
+           @override  renderer.renderScene
+
+        */
+
+        maptalks.ThreeLayer.prototype.setRendererRenderScene = function () {
+            this.getRenderer().renderScene = function () {
+                const layer = this.layer;
+                layer._callbackBaseObjectAnimation();
+                this._syncCamera();
+
+                const renderer = this.context, camera = this.camera, scene = this.scene;
+                if (layer.bloomEnable && layer.composer && layer.composer.passes.length > 1) {
+                    if (renderer.autoClear) {
+                        renderer.autoClear = false;
+                    }
+                    if (layer.bloomPass) {
+                        camera.layers.set(1);
+                    }
+                    if (layer && layer.composer) {
+                        layer.composer.render(0);
+                    }
+                    renderer.clearDepth();
+                    camera.layers.set(0);
+                    renderer.render(scene, camera);
+                } else {
+                    if (!renderer.autoClear) {
+                        renderer.autoClear = true;
+                    }
+                    renderer.render(scene, camera);
+                }
+
+                this.completeRender();
+            }
+        }
+
+
+        var lines;
+
+        //https://threejs.org/examples/#webgl_lines_fat
+
+        var material1 = new THREE.LineMaterial({
+            color: '#fff',
+            transparent: true,
+            opacity: 0.5,
+            // vertexColors: THREE.VertexColors,
+            // side: THREE.BackSide,
+            linewidth: 2 // in pixels
+            // vertexColors: THREE.VertexColors,
+            // dashed: false
+
+        });
+
+        var material11 = new THREE.LineMaterial({
+            color: '#fff',
+            transparent: true,
+            // vertexColors: THREE.VertexColors,
+            // side: THREE.BackSide,
+            linewidth: 1.6 // in pixels
+            // vertexColors: THREE.VertexColors,
+            // dashed: false
+
+        });
+        material11.uniforms.opacity.value = 0.3;
+
+        var material2 = new THREE.LineMaterial({
+            color: '#41BFF9',
+            transparent: true,
+            // vertexColors: THREE.VertexColors,
+            // side: THREE.BackSide,
+            linewidth: 2 // in pixels
+            // vertexColors: THREE.VertexColors,
+            // dashed: false
+
+        });
+        var material22 = new THREE.LineMaterial({
+            color: '#41BFF9',
+            transparent: true,
+            // vertexColors: THREE.VertexColors,
+            // side: THREE.BackSide,
+            linewidth: 1 // in pixels
+            // vertexColors: THREE.VertexColors,
+            // dashed: false
+
+        });
+        material22.uniforms.opacity.value = 0.4;
+
+        var material3 = new THREE.LineMaterial({
+            color: '#41BFF9',
+            transparent: true,
+            // vertexColors: THREE.VertexColors,
+            // side: THREE.BackSide,
+            linewidth: 5 // in pixels
+            // vertexColors: THREE.VertexColors,
+            // dashed: false
+
+        });
+
+
+
+        function addLines() {
+            fetch('./data/beijing.geojson').then(function (res) {
+                return res.json();
+            }).then(function (geojson) {
+                geojson.features = geojson.features.map(f => {
+                    return Object.assign({}, f, {
+                        geometry: {
+                            type: 'LineString',
+                            coordinates: f.geometry.coordinates[0]
+                        }
+                    });
+                })
+                var lineStrings = maptalks.GeoJSON.toGeometry(geojson);
+                lines = [];
+                for (let i = 0, len = 10; i <= len; i++) {
+                    const alt = i * 8;
+                    let m, bloom = false;
+                    if (i === 0) {
+                        m = material11;
+                    } else if (i === 5) {
+                        m = material1;
+                        // bloom = true;
+                    } else if (i < 5) {
+                        m = material22;
+                    } else if (i === 10) {
+                        m = material3;
+                        bloom = true;
+                    } else {
+                        m = material2;
+                        // bloom = true;
+                    }
+                    var line = threeLayer.toFatLine(lineStrings[0], { altitude: alt, _altitude: alt }, m);
+                    if (bloom) {
+                        line.getObject3d().layers.enable(1);
+                    }
+                    line.zoomChange = zoomChange;
+                    lines.push(line);
+
+                }
+                threeLayer.addMesh(lines);
+                loadAreas();
+                animation();
+                initGui();
+            })
+        }
+
+        function loadAreas() {
+            fetch('./data/beijingareas.geojson').then(function (res) {
+                return res.json();
+            }).then(function (geojson) {
+                const material = new THREE.MeshBasicMaterial({ color: '#03337B' }), alt = 80;
+                const polygons = geojson.features.map(f => {
+                    const polygon = threeLayer.toExtrudePolygon(f, { altitude: alt, _altitude: alt }, material);
+                    polygon.zoomChange = zoomChange;
+                    return polygon;
+                });
+                threeLayer.addMesh(polygons);
+
+                geojson.features = geojson.features.map(f => {
+                    return Object.assign({}, f, {
+                        geometry: {
+                            type: f.geometry.type === 'Polygon' ? 'LineString' : 'MultiLineString',
+                            coordinates: f.geometry.type === 'Polygon' ? f.geometry.coordinates[0] : f.geometry.coordinates.map(c => {
+                                return c[0]
+                            })
+                        }
+                    });
+                })
+                var lineStrings = maptalks.GeoJSON.toGeometry(geojson);
+                lineStrings.forEach(element => {
+                    console.log(element);
+                    var line = threeLayer.toFatLine(element, { altitude: alt + 1, _altitude: alt + 1 }, material3);
+                    line.zoomChange = zoomChange;
+                    lines.push(line);
+                    threeLayer.addMesh(line);
+                });
+            });
+        }
+
+        function zoomChange() {
+            const map = this.getMap();
+            if (!map) {
+                return;
+            }
+            const heightPerPixel = map.pixelToDistance(1, 0);
+            const alt = this.getOptions()._altitude;
+            this.setAltitude(alt * heightPerPixel);
+        }
+
+        function animation() {
+            // layer animation support Skipping frames
+            threeLayer._needsUpdate = !threeLayer._needsUpdate;
+            if (threeLayer._needsUpdate && !threeLayer.isRendering()) {
+                threeLayer.renderScene();
+            }
+            stats.update();
+            requestAnimationFrame(animation);
+        }
+
+        function initGui() {
+            var params = {
+                add: true,
+                color: 0x00ffff,
+                show: true,
+                opacity: 1,
+                altitude: 0
+            };
+            var gui = new dat.GUI();
+            gui.add(params, 'add').onChange(function () {
+                if (params.add) {
+                    threeLayer.addMesh(lines);
+                } else {
+                    threeLayer.removeMesh(lines);
+                }
+            });
+            gui.addColor(params, 'color').name('line color').onChange(function () {
+                material.color.set(params.color);
+                lines.forEach(function (mesh) {
+                    mesh.setSymbol(material);
+                });
+            });
+            gui.add(params, 'opacity', 0, 1).onChange(function () {
+                material.uniforms.opacity.value = (params.opacity);
+                lines.forEach(function (mesh) {
+                    mesh.setSymbol(material);
+                });
+            });
+            gui.add(params, 'show').onChange(function () {
+                lines.forEach(function (mesh) {
+                    if (params.show) {
+                        mesh.show();
+                    } else {
+                        mesh.hide();
+                    }
+                });
+            });
+            // gui.add(params, 'altitude', 0, 300).onChange(function () {
+            //     lines.forEach(function (mesh) {
+            //         mesh.setAltitude(params.altitude);
+            //     });
+            // });
+        }
+    </script>
+</body>
+
+</html>
