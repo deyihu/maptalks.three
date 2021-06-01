@@ -1,4 +1,4 @@
-import { extrudePolygon } from 'deyihu-geometry-extrude';
+import { extrudePolygon, extrudePolyline } from 'deyihu-geometry-extrude';
 
 export const initialize = function () {
 };
@@ -8,7 +8,15 @@ export const onmessage = function (message, postResponse) {
     let { type, datas } = data;
     if (type === 'Polygon') {
         generateData(datas);
-        const result = generateExtrudePolygons(datas);
+        const result = generateExtrude(datas);
+        postResponse(null, result, [result.position, result.normal, result.uv, result.indices]);
+    } else if (type === 'LineString') {
+        for (let i = 0, len = datas.length; i < len; i++) {
+            for (let j = 0, len1 = datas[i].data.length; j < len1; j++) {
+                datas[i].data[j] = arrayBufferToArray(datas[i].data[j]);
+            }
+        }
+        const result = generateExtrude(datas, true);
         postResponse(null, result, [result.position, result.normal, result.uv, result.indices]);
     }
 };
@@ -42,12 +50,13 @@ function arrayBufferToArray(buffer) {
 
 
 
-function generateExtrudePolygons(datas) {
+function generateExtrude(datas, isLine = false) {
     const len = datas.length;
     const geometriesAttributes = [], geometries = [], faceMap = [];
     let faceIndex = 0, psIndex = 0, normalIndex = 0, uvIndex = 0;
     for (let i = 0; i < len; i++) {
-        const buffGeom = extrudePolygons(datas[i]);
+        const buffGeom = isLine ? extrudeLine(datas[i]) : extrudePolygons(datas[i]);
+        const minZ = datas[i].bottomHeight || 0;
         const { position, normal, uv, indices } = buffGeom;
         geometries.push(buffGeom);
         const faceLen = indices.length / 3;
@@ -58,6 +67,7 @@ function generateExtrudePolygons(datas) {
             normalCount = normal.length / 3, uvCount = uv.length / 2;
         geometriesAttributes[i] = {
             position: {
+                middleZ: minZ + (datas[i].height || 0) / 2,
                 count: psCount,
                 start: psIndex,
                 end: psIndex + psCount * 3,
@@ -92,7 +102,7 @@ function generateExtrudePolygons(datas) {
 
 
 function extrudePolygons(d) {
-    const { data, height } = d;
+    const { data, height, bottomHeight } = d;
     const { position, normal, uv, indices } = extrudePolygon(
         // polygons same with coordinates of MultiPolygon type geometry in GeoJSON
         // See http://wiki.geojson.org/GeoJSON_draft_version_6#MultiPolygon
@@ -104,6 +114,17 @@ function extrudePolygons(d) {
             depth: height
         }
     );
+    setBottomHeight(position, bottomHeight);
+    return { position, normal, uv, indices };
+}
+
+function extrudeLine(d) {
+    const { data, height, width, bottomHeight } = d;
+    const { position, normal, uv, indices } = extrudePolyline(data, {
+        lineWidth: width,
+        depth: height
+    });
+    setBottomHeight(position, bottomHeight);
     return { position, normal, uv, indices };
 }
 
@@ -154,5 +175,13 @@ function mergeBufferGeometries(geometries) {
     }
     mergedGeometry['indices'] = new Uint32Array(mergedIndex);
     return mergedGeometry;
+}
+
+function setBottomHeight(position, bottomHeight) {
+    if (bottomHeight !== undefined && typeof bottomHeight === 'number' && bottomHeight !== 0) {
+        for (let i = 0, len = position.length; i < len; i += 3) {
+            position[i + 2] += bottomHeight;
+        }
+    }
 }
 

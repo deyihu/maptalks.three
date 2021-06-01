@@ -3,6 +3,7 @@ const babel = require('rollup-plugin-babel');
 const commonjs = require('rollup-plugin-commonjs');
 const uglify = require('rollup-plugin-uglify').uglify;
 const json = require('rollup-plugin-json');
+const typescript = require('rollup-plugin-typescript2');
 const pkg = require('./package.json');
 
 const banner = `/*!\n * ${pkg.name} v${pkg.version}\n * LICENSE : ${pkg.license}\n * (c) 2016-${new Date().getFullYear()} maptalks.org\n */`;
@@ -13,26 +14,8 @@ if (pkg.peerDependencies && pkg.peerDependencies['yymap']) {
 }
 
 outro = `typeof console !== 'undefined' && console.log('${outro}');`;
-const intro = `
-    var IS_NODE = typeof exports === 'object' && typeof module !== 'undefined';
-    var YY = yymap;
-    if (IS_NODE) {
-        YY = yymap || require('yymap');
-    }
-    var workerLoaded;
-    function define(_, chunk) {
-    if (!workerLoaded) {
-        if(YY&&YY.registerWorkerAdapter){
-            YY.registerWorkerAdapter('${pkg.name}', chunk);
-            workerLoaded = true;
-        }else{
-          console.warn('YY.registerWorkerAdapter is not defined');
-        }
-    } else {
-        var exports = IS_NODE ? module.exports : YY;
-        chunk(exports, YY);
-    }
-}`;
+
+const intro='';
 
 
 function removeGlobal() {
@@ -51,12 +34,17 @@ function removeGlobal() {
 
 const basePlugins = [
     json(),
+    typescript({
+
+    }),
+    //handle node_modules
     resolve({
         module: true,
         jsnext: true,
         main: true
     }),
     commonjs(),
+    //handle ES2015+
     babel({
         // exclude: 'node_modules/**'
     }),
@@ -65,33 +53,7 @@ const basePlugins = [
 
 module.exports = [
     {
-        input: 'src/worker/index.js',
-        plugins: [
-            json(),
-            resolve({
-                module: true,
-                jsnext: true,
-                main: true
-            }),
-            commonjs(),
-            babel()
-        ],
-        external: ['yymap'],
-        output: {
-            format: 'amd',
-            name: 'YY',
-            globals: {
-                'YY': 'yymap'
-            },
-            extend: true,
-            file: 'dist/worker.js'
-        },
-        // watch: {
-        //     include: 'src/worker/**'
-        // }
-    },
-    {
-        input: 'index.js',
+        input: 'src/index.ts',
         plugins: basePlugins,
         external: ['yymap', 'three'],
         output: {
@@ -101,25 +63,44 @@ module.exports = [
             'banner': banner,
             'outro': outro,
             'extend': true,
-            // 'intro': intro,
+            'intro': intro,
             'globals': {
-                'YY': 'yymap',
-                'THREE': 'three'
+                'yymap': 'YY',
+                'three': 'THREE'
             },
             'file': 'dist/maptalks.three.js'
         }
     },
     {
-        input: 'index.js',
-        plugins: basePlugins,
+        input: 'src/index.ts',
+        plugins: basePlugins.concat([uglify()]),
         external: ['yymap', 'three'],
         output: {
             'sourcemap': false,
-            'format': 'es',
+            'format': 'umd',
+            'name': 'YY',
             'banner': banner,
             'outro': outro,
-            // 'intro': intro,
-            'file': pkg.module
+            'intro': intro,
+            'extend': true,
+            'globals': {
+                'yymap': 'YY',
+                'three': 'THREE'
+            },
+            'file': 'dist/maptalks.three.min.js'
         }
-    }
+    },
+    // {
+    //     input: 'src/index.ts',
+    //     plugins: basePlugins,
+    //     external: ['maptalks', 'three'],
+    //     output: {
+    //         'sourcemap': false,
+    //         'format': 'es',
+    //         'banner': banner,
+    //         'outro': outro,
+    //         'intro': intro,
+    //         'file': pkg.module
+    //     }
+    // }
 ];
