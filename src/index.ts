@@ -1179,7 +1179,8 @@ export {
     geometryExtrude,
     MergedMixin,
     GeoJSONUtil, MergeGeometryUtil, GeoUtil, ExtrudeUtil, LineUtil,
-    IdentifyUtil
+    IdentifyUtil,
+    maptalks
 };
 
 if (maptalks.registerWorkerAdapter) {
