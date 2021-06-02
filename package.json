@@ -1,6 +1,6 @@
 {
   "name": "yy.maptalks.three",
-  "version": "0.15.5",
+  "version": "0.15.6",
   "description": "A maptalks Layer to render with THREE.js.",
   "license": "MIT",
   "repository": {
