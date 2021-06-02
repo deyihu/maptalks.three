@@ -6,7 +6,7 @@ import * as THREE from 'three';
  */
 const REVISION = parseInt(THREE.REVISION.replace('dev', ''));
 //Three does not print version information now. Output the version of three to find compatibility problems
-console.log(`maptalks.three log: current three.js version is %c${REVISION}`, 'color:red;font-size: 16px;font-weight: bold;');
+// console.log(`maptalks.three log: current three.js version is %c${REVISION}`, 'color:red;font-size: 16px;font-weight: bold;');
 /**
  *
  * @param {THREE.BufferGeometry} bufferGeomertry

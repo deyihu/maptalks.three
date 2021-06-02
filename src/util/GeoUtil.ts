@@ -181,3 +181,25 @@ export function circle(c, radius = 100, numbers = 60) {
     }
     return coordinates;
 }
+
+
+export function bearing(c1, c2) {
+    if (!c1 || !c2) {
+        return 0;
+    }
+    if (!Array.isArray(c1)) {
+        c1 = c1.toArray();
+    }
+    if (!Array.isArray(c2)) {
+        c2 = c2.toArray();
+    }
+    const lon1 = degreesToRadians(c1[0]);
+    const lon2 = degreesToRadians(c2[0]);
+    const lat1 = degreesToRadians(c1[1]);
+    const lat2 = degreesToRadians(c2[1]);
+    const a = Math.sin(lon2 - lon1) * Math.cos(lat2);
+    const b = Math.cos(lat1) * Math.sin(lat2) -
+        Math.sin(lat1) * Math.cos(lat2) * Math.cos(lon2 - lon1);
+
+    return radiansToDegrees(Math.atan2(a, b));
+}
