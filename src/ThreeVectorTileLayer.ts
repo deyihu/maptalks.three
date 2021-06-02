@@ -1,13 +1,12 @@
-import * as YY from 'yymap';
 import * as THREE from 'three';
 import { pushQueue, outQueue, getQueues, nextLoop } from './queue/TileDataQueue';
 import { isGeoJSONPolygon, isGeoJSONLine, spliteGeoJSONMulti, isGeoJSONPoint, getGeoJSONCoordinates } from './util/GeoJSONUtil';
 import BaseVectorTileLayer from './BaseVectorTileLayer';
-const maptalks = YY.getNamespace().maptalks;
 import { ThreeLayer } from './index';
 import BaseObject from './BaseObject';
 import { Queue } from './type';
 import { getBaseObjectMaterialType } from './type/Material';
+import maptalks from './MTK';
 
 const OPTIONS = {
     worker: false

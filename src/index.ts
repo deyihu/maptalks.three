@@ -1,5 +1,4 @@
 // import './dist/worker';
-import * as YY from 'yymap';
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
 import Bar from './Bar';
@@ -37,8 +36,7 @@ import { BarOptionType, BaseLayerOptionType, BaseObjectOptionType, ExtrudeLineOp
 import { getWorkerCode, getWorkerName } from './worker/getworker';
 import LineGeometry from './util/fatline/LineGeometry';
 import Line2 from './util/fatline/Line2';
-
-const maptalks = YY.getNamespace().maptalks;
+import maptalks from './MTK';
 
 const options: BaseLayerOptionType = {
     'renderer': 'gl',

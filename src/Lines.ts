@@ -1,15 +1,14 @@
-import * as YY from 'yymap';
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
 import { getLinePosition, LineStringSplit } from './util/LineUtil';
 import MergedMixin from './MergedMixin';
 import Line from './Line';
 import { isGeoJSONLine } from './util/GeoJSONUtil';
-const maptalks = YY.getNamespace().maptalks;
 import { addAttribute, getVertexColors } from './util/ThreeAdaptUtil';
 import { getCenterOfPoints, setBottomHeight } from './util/index';
 import { LineMaterialType, LineOptionType, LineStringType } from './type/index';
 import { ThreeLayer } from './index';
+import maptalks from './MTK';
 
 const OPTIONS = {
     altitude: 0,

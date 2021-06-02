@@ -1,10 +1,9 @@
-import * as YY from 'yymap';
 import Terrain from './Terrain';
 import BaseVectorTileLayer from './BaseVectorTileLayer';
-const maptalks = YY.getNamespace().maptalks;
 import { ThreeLayer } from './index';
 import BaseObject from './BaseObject';
 import { ImageType, Queue } from './type';
+import maptalks from './MTK';
 
 const OPTIONS = {
     // worker: false

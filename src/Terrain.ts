@@ -1,10 +1,9 @@
-import * as YY from 'yymap';
 import { ThreeLayer } from './index';
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
 import { ImageType, TerrainOptionType } from './type';
 import { distanceToVector3 } from './util';
-const maptalks = YY.getNamespace().maptalks;
+import maptalks from './MTK';
 // import { addAttribute } from './util/ThreeAdaptUtil';
 const textureLoader = new THREE.TextureLoader();
 const canvas = document.createElement('canvas'), tileSize = 256;

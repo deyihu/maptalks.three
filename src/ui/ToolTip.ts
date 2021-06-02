@@ -1,7 +1,5 @@
-import * as YY from 'yymap';
 import BaseObject from './../BaseObject';
-const maptalks = YY.getNamespace().maptalks;
-
+import maptalks from './../MTK';
 class ToolTip extends maptalks.ui.ToolTip {
     _owner: any;
 

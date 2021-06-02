@@ -1,4 +1,3 @@
-import * as YY from 'yymap';
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
 
@@ -6,9 +5,9 @@ import { lineSlice } from './util/GeoUtil';
 import { getExtrudeLineParams, getChunkLinesPosition } from './util/LineUtil';
 import { isGeoJSON, getGeoJSONCenter, getGeoJSONCoordinates } from './util/GeoJSONUtil';
 import { addAttribute } from './util/ThreeAdaptUtil';
-const maptalks = YY.getNamespace().maptalks;
 import { ExtrudeLineTrailOptionType, SingleLineStringType } from './type';
 import { ThreeLayer } from './index';
+import maptalks from './MTK';
 
 const MAX_POINTS = 1000;
 

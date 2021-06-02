@@ -1,4 +1,3 @@
-import * as YY from 'yymap';
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
 import { initVertexColors, getExtrudeGeometryParams } from './util/ExtrudeUtil';
@@ -7,11 +6,11 @@ import MergedMixin from './MergedMixin';
 import { getGeoJSONCenter, isGeoJSONPolygon } from './util/GeoJSONUtil';
 import { generateBufferGeometry, getDefaultBufferGeometry, mergeBufferGeometries } from './util/MergeGeometryUtil';
 import { getActor } from './worker/MeshActor';
-const maptalks = YY.getNamespace().maptalks;
 import { ExtrudePolygonOptionType, PolygonType } from './type';
 import { ThreeLayer } from './index';
 import { getVertexColors } from './util/ThreeAdaptUtil';
 import { setBottomHeight } from './util';
+import maptalks from './MTK';
 
 const OPTIONS = {
     altitude: 0,

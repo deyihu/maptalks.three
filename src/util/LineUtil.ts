@@ -1,11 +1,10 @@
 import * as THREE from 'three';
-import * as YY from 'yymap';
 import { extrudePolyline } from 'deyihu-geometry-extrude';
 import { isGeoJSON, getGeoJSONCoordinates, getGeoJSONCenter, isGeoJSONMulti, spliteGeoJSONMulti } from './GeoJSONUtil';
 import { addAttribute } from './ThreeAdaptUtil';
-const maptalks = YY.getNamespace().maptalks;
 import { ThreeLayer } from './../index';
 import { GeoJSONLineStringFeature, LineStringType, MergeAttributeType, SingleLineStringType } from './../type/index';
+import maptalks from './../MTK';
 const COMMA = ',';
 
 /**

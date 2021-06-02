@@ -1,11 +1,10 @@
-import * as YY from 'yymap';
 import { ThreeLayer } from './index';
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
 import { PointOptionType } from './type';
 import { vector2Pixel } from './util/IdentifyUtil';
 import { addAttribute } from './util/ThreeAdaptUtil';
-const maptalks = YY.getNamespace().maptalks;
+import maptalks from './MTK';
 
 const OPTIONS = {
     altitude: 0,

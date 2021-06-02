@@ -1,8 +1,7 @@
 import * as THREE from 'three';
-import * as YY from 'yymap';
 import { ThreeLayer } from './../index';
 import { MergeAttributeType } from './../type/index';
-const maptalks = YY.getNamespace().maptalks as any;
+import maptalks from './../MTK';
 //Using cache to reduce computation
 export function distanceToVector3(distance: number, layer: ThreeLayer, cache: { [key: number]: number } = {}): number {
     if (cache[distance] === undefined) {

@@ -1,8 +1,7 @@
-import * as YY from 'yymap';
 import BaseObject from './BaseObject';
-const maptalks = YY.getNamespace().maptalks;
 import { ThreeLayer } from './index';
 import { BaseObjectOptionType } from './type';
+import maptalks from './MTK';
 
 const OPTIONS = {
     altitude: 0,

@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import * as YY from 'yymap';
 import MergedMixin from './MergedMixin';
 import BaseObject from './BaseObject';
 import { initVertexColors } from './util/ExtrudeUtil';
@@ -12,7 +11,7 @@ import { getActor } from './worker/MeshActor';
 import { ExtrudeLineOptionType, LineStringType, MergeAttributeType, SingleLineStringType } from './type/index';
 import { ThreeLayer } from './index';
 import { getVertexColors } from './util/ThreeAdaptUtil';
-const maptalks = YY.getNamespace().maptalks;
+import maptalks from './MTK';
 
 const OPTIONS = {
     width: 3,

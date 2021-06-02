@@ -1,13 +1,12 @@
-import * as YY from 'yymap';
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
 import HeatMapUitl from './util/heatmap/HeatMapUtil';
 import { createCanvas } from './util/CanvasUtil';
 import Intensity from './util/heatmap/Intensity';
-const maptalks = YY.getNamespace().maptalks;
 import { addAttribute, getVertexColors } from './util/ThreeAdaptUtil';
 import { HeatMapDataType, HeatMapOptionType } from './type';
 import { ThreeLayer } from './index';
+import maptalks from './MTK';
 
 const OPTIONS = {
     altitude: 0,

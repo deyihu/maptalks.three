@@ -1,12 +1,11 @@
-import * as YY from 'yymap';
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
 import { ThreeLayer } from './index';
 import { LineMaterialType, LineOptionType, LineStringType } from './type/index';
 import { setBottomHeight } from './util';
 import { getLinePosition, LineStringSplit } from './util/LineUtil';
-const maptalks = YY.getNamespace().maptalks;
 import { addAttribute, getVertexColors } from './util/ThreeAdaptUtil';
+import maptalks from './MTK';
 
 function initColors(cs) {
     const colors = [];

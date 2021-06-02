@@ -1,8 +1,6 @@
 /* eslint-disable indent */
-import * as YY from 'yymap';
-const maptalks = YY.getNamespace().maptalks;
 import { GeoJSONFeature } from './../type/index';
-
+import maptalks from './../MTK';
 
 const TYPES: Array<string> = ['Point', 'MultiPoint', 'LineString', 'MultiLineString', 'Polygon', 'MultiPolygon'];
 

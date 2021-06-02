@@ -1,9 +1,8 @@
-import * as YY from 'yymap';
 import BaseObject from './BaseObject';
 import { ThreeLayer } from './index';
 import { getBaseObjectMaterialType, Queue } from './type';
 import { generateImage } from './util/CanvasUtil';
-const maptalks = YY.getNamespace().maptalks;
+import maptalks from './MTK';
 /**
  *
  */

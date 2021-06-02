@@ -1,4 +1,3 @@
-import * as YY from 'yymap';
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
 import Point from './Point';
@@ -7,9 +6,9 @@ import MergedMixin from './MergedMixin';
 import BBox from './util/BBox';
 import { addAttribute } from './util/ThreeAdaptUtil';
 import { distanceToVector3 } from './util';
-const maptalks = YY.getNamespace().maptalks;
 import { PointOptionType } from './type';
 import { ThreeLayer } from './index';
+import maptalks from './MTK';
 
 const OPTIONS = {
     altitude: 0

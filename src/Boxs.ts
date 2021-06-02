@@ -1,15 +1,13 @@
-
-import * as YY from 'yymap';
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
 import Box from './Box';
 import MergedMixin from './MergedMixin';
 import {  getDefaultBoxGeometry, initVertexColors, mergeBarGeometry } from './util/BarUtil';
-const maptalks = YY.getNamespace().maptalks;
 import { distanceToVector3, getCenterOfPoints } from './util/index';
 import { BarOptionType } from './type/index';
 import { ThreeLayer } from './index';
 import { getVertexColors } from './util/ThreeAdaptUtil';
+import maptalks from './MTK';
 
 const OPTIONS = {
     radius: 10,

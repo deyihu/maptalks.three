@@ -1,4 +1,3 @@
-import * as YY from 'yymap';
 import { isGeoJSONLine, isGeoJSONPolygon } from '../util/GeoJSONUtil';
 import { getPolygonPositions } from '../util/ExtrudeUtil';
 // import pkg from './../../package.json';
@@ -6,7 +5,7 @@ import { getLinePosition } from '../util/LineUtil';
 import { LineStringType, PolygonType, SingleLineStringType } from './../type/index';
 import { ThreeLayer } from './../index';
 import { getWorkerName } from './worker';
-const maptalks = YY.getNamespace().maptalks as any;
+import maptalks from './../MTK';
 
 let MeshActor;
 if (maptalks.worker) {

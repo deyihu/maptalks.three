@@ -1,7 +1,5 @@
-import * as YY from 'yymap';
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
-const maptalks = YY.getNamespace().maptalks;
 import { LineStringSplit, getExtrudeLineParams } from './util/LineUtil';
 import { mergeBufferGeometries } from './util/MergeGeometryUtil';
 import { initVertexColors } from './util/ExtrudeUtil';
@@ -9,6 +7,7 @@ import { ThreeLayer } from './index';
 import { ExtrudeLineOptionType, LineStringType, MergeAttributeType } from './type/index';
 import { setBottomHeight } from './util';
 import { getVertexColors } from './util/ThreeAdaptUtil';
+import maptalks from './MTK';
 
 const OPTIONS = {
     bottomHeight: 0,

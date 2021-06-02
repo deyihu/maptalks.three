@@ -1,15 +1,14 @@
-import * as YY from 'yymap';
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
 import { getLinePosition, LineStringSplit } from './util/LineUtil';
 import LineGeometry from './util/fatline/LineGeometry';
 import Line2 from './util/fatline/Line2';
 import LineMaterial from './util/fatline/LineMaterial';
-const maptalks = YY.getNamespace().maptalks;
 import { FatLineMaterialType, LineOptionType, LineStringType } from './type';
 import { ThreeLayer } from './index';
 import { getVertexColors } from './util/ThreeAdaptUtil';
 import { setBottomHeight } from './util';
+import maptalks from './MTK';
 
 const OPTIONS = {
     bottomHeight: 0,

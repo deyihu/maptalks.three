@@ -1,12 +1,11 @@
 
-import * as YY from 'yymap';
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
 import { ThreeLayer } from './index';
 import { BarOptionType } from './type/index';
 import { getDefaultBoxGeometry, initVertexColors } from './util/BarUtil';
-const maptalks = YY.getNamespace().maptalks;
 import { getVertexColors } from './util/ThreeAdaptUtil';
+import maptalks from './MTK';
 
 const OPTIONS = {
     radius: 10,

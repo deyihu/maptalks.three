@@ -1,6 +1,5 @@
 
-import * as YY from 'yymap';
-const maptalks = YY.getNamespace().maptalks;
+import maptalks from './../MTK';
 
 const ROW: number = 30, COL: number = 30;
 

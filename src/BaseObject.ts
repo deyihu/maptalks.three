@@ -1,9 +1,7 @@
-import * as YY from 'yymap';
-"use strict"
 import * as THREE from 'three';
 import { BaseObjectOptionType } from './type/BaseOption';
 import Line2 from './util/fatline/Line2';
-const maptalks = YY.getNamespace().maptalks;
+import maptalks from './MTK';
 
 const OPTIONS = {
     interactive: true,

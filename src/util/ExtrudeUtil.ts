@@ -1,11 +1,10 @@
 import * as THREE from 'three';
-import * as YY from 'yymap';
 import { isGeoJSONPolygon, spliteGeoJSONMulti, getGeoJSONCenter, isGeoJSONMulti, getGeoJSONCoordinates } from './GeoJSONUtil';
 import { extrudePolygon } from 'deyihu-geometry-extrude';
 import { addAttribute } from './ThreeAdaptUtil';
-const maptalks = YY.getNamespace().maptalks;
 import { ThreeLayer } from './../index';
 import { MergeAttributeType, PolygonType, SinglePolygonType } from './../type/index';
+import maptalks from './../MTK';
 
 const topColor: THREE.Color = new THREE.Color('#fff'),
     bottomColor: THREE.Color = new THREE.Color('#fff');

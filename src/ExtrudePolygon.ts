@@ -1,4 +1,3 @@
-import * as YY from 'yymap';
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
 import { ThreeLayer } from './index';
@@ -6,8 +5,8 @@ import { ExtrudePolygonOptionType, PolygonType } from './type/index';
 import { setBottomHeight } from './util';
 import { getExtrudeGeometry, initVertexColors } from './util/ExtrudeUtil';
 import { getGeoJSONCenter, isGeoJSONPolygon } from './util/GeoJSONUtil';
-const maptalks = YY.getNamespace().maptalks;
 import { getVertexColors } from './util/ThreeAdaptUtil';
+import maptalks from './MTK';
 
 const OPTIONS = {
     altitude: 0,
