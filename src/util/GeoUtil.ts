@@ -18,6 +18,15 @@ function degreesToRadians(d: number): number {
     return d * PI;
 }
 
+function radiansToDegrees(radians) {
+    const degrees = radians % (2 * Math.PI);
+    return degrees * 180 / Math.PI;
+}
+
+function lengthToRadians(dis) {
+    return dis / R;
+}
+
 
 
 export function distance(c1, c2): number {
@@ -60,6 +69,26 @@ function getPercentLngLat(l: any, length: number): Array<number> {
     const percent = length / len;
     const lng = c1[0] + percent * dx;
     const lat = c1[1] + percent * dy;
+    return [lng, lat];
+}
+
+
+export function destination(c, dis, bearing = 0) {
+    if (!Array.isArray(c)) {
+        c = c.toArray();
+    }
+    const longitude1 = degreesToRadians(c[0]);
+    const latitude1 = degreesToRadians(c[1]);
+    const bearingRad = degreesToRadians(bearing);
+    const radians = lengthToRadians(dis);
+
+    // Main
+    const latitude2 = Math.asin(Math.sin(latitude1) * Math.cos(radians) +
+        Math.cos(latitude1) * Math.sin(radians) * Math.cos(bearingRad));
+    const longitude2 = longitude1 + Math.atan2(Math.sin(bearingRad) * Math.sin(radians) * Math.cos(latitude1),
+        Math.cos(radians) - Math.sin(latitude1) * Math.sin(latitude2));
+    const lng = radiansToDegrees(longitude2);
+    const lat = radiansToDegrees(latitude2);
     return [lng, lat];
 }
 
@@ -143,4 +172,12 @@ export function lineSlice(cs, lineChunkLength = 10): Array<Array<Array<number>>>
         }
     }
     return lines;
+}
+
+export function circle(c, radius = 100, numbers = 60) {
+    const coordinates = [];
+    for (let i = 0; i < numbers; i++) {
+        coordinates.push(destination(c, radius, i * -360 / numbers));
+    }
+    return coordinates;
 }
