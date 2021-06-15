@@ -471,6 +471,14 @@ class BaseObject extends maptalks.Eventable(Base) {
         this.layers.enable(0);
     }
 
+    setStyle(style) {
+        return this.setSymbol(style);
+    }
+
+    getStyle() {
+        return this.getSymbol();
+    }
+
     /**
      * more method support
      * @param {*} options
