@@ -100,7 +100,7 @@ module.exports = [
     },
     {
         input: 'src/index.ts',
-        plugins: basePlugins.concat([uglify()]),
+        plugins: basePlugins.concat([terser()]),
         external: ['yymap', 'three'],
         output: {
             'sourcemap': false,
