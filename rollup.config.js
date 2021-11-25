@@ -117,44 +117,44 @@ module.exports = [
             'file': 'dist/maptalks.three.min.js'
         }
     },
-    {
-        input: 'src/index.ts',
-        plugins: es5BasePlugins,
-        external: ['maptalks', 'three'],
-        output: {
-            'sourcemap': true,
-            'format': 'umd',
-            'name': 'maptalks',
-            'banner': banner,
-            'outro': outro,
-            'extend': true,
-            'intro': intro,
-            'globals': {
-                'maptalks': 'maptalks',
-                'three': 'THREE'
-            },
-            'file': 'dist/maptalks.three.es5.js'
-        }
-    },
-    {
-        input: 'src/index.ts',
-        plugins: es5BasePlugins.concat([terser()]),
-        external: ['maptalks', 'three'],
-        output: {
-            'sourcemap': false,
-            'format': 'umd',
-            'name': 'maptalks',
-            'banner': banner,
-            'outro': outro,
-            'intro': intro,
-            'extend': true,
-            'globals': {
-                'maptalks': 'maptalks',
-                'three': 'THREE'
-            },
-            'file': 'dist/maptalks.three.es5.min.js'
-        }
-    },
+    // {
+    //     input: 'src/index.ts',
+    //     plugins: es5BasePlugins,
+    //     external: ['yymap', 'three'],
+    //     output: {
+    //         'sourcemap': true,
+    //         'format': 'umd',
+    //         'name': 'YY',
+    //         'banner': banner,
+    //         'outro': outro,
+    //         'extend': true,
+    //         'intro': intro,
+    //         'globals': {
+    //             'yymap': 'YY',
+    //             'three': 'THREE'
+    //         },
+    //         'file': 'dist/maptalks.three.es5.js'
+    //     }
+    // },
+    // {
+    //     input: 'src/index.ts',
+    //     plugins: es5BasePlugins.concat([terser()]),
+    //     external: ['yymap', 'three'],
+    //     output: {
+    //         'sourcemap': false,
+    //         'format': 'umd',
+    //         'name': 'YY',
+    //         'banner': banner,
+    //         'outro': outro,
+    //         'intro': intro,
+    //         'extend': true,
+    //         'globals': {
+    //             'yymap': 'YY',
+    //             'three': 'THREE'
+    //         },
+    //         'file': 'dist/maptalks.three.es5.min.js'
+    //     }
+    // },
     // {
     //     input: 'src/index.ts',
     //     plugins: basePlugins,
