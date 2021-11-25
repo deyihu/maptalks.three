@@ -15,7 +15,7 @@ export function distanceToVector3(distance: number, layer: ThreeLayer, cache: { 
  *Get the center point of the point set
  * @param {*} coordinates
  */
-export function getCenterOfPoints(coordinates: Array<any> = []): maptalks.Coordinate {
+export function getCenterOfPoints(coordinates: Array<any> = []): any {
     let sumX = 0, sumY = 0;
     const len = coordinates.length;
     for (let i = 0; i < len; i++) {

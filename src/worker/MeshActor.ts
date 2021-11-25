@@ -59,7 +59,7 @@ export function getActor() {
  * @param {*} polygons
  * @param {*} layer
  */
-function gengerateExtrudePolygons(polygons: PolygonType[] = [], center: maptalks.Coordinate, layer: ThreeLayer) {
+function gengerateExtrudePolygons(polygons: PolygonType[] = [], center: any, layer: ThreeLayer) {
     const centerPt = layer.coordinateToVector3(center);
     const len = polygons.length;
     const datas = [], transfer = [], altCache = {};

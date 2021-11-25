@@ -62,7 +62,7 @@ export function getGeoJSONCoordinates(feature: GeoJSONFeature):
 }
 
 
-export function getGeoJSONCenter(feature: GeoJSONFeature, out?: maptalks.Coordinate): maptalks.Coordinate {
+export function getGeoJSONCenter(feature: GeoJSONFeature, out?: any): any {
     const type = getGeoJSONType(feature);
     if (!type || !feature.geometry) {
         return null;

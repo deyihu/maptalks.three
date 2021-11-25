@@ -52,7 +52,7 @@ export function getExtrudeGeometry(polygon: PolygonType, height: number, layer: 
 }
 
 
-export function getExtrudeGeometryParams(polygon: PolygonType, height: number, layer: ThreeLayer, center: maptalks.Coordinate, centerPt?: THREE.Vector3, altCache?: any): MergeAttributeType {
+export function getExtrudeGeometryParams(polygon: PolygonType, height: number, layer: ThreeLayer, center: any, centerPt?: THREE.Vector3, altCache?: any): MergeAttributeType {
     const datas = getPolygonPositions(polygon, layer, center, centerPt, false);
     const shapes = datas;
     //Possible later use of geojson
@@ -125,7 +125,7 @@ export function initVertexColors(geometry: THREE.BufferGeometry, color: string, 
  * @param {*} layer
  * @param {*} center
  */
-export function getPolygonPositions(polygon: PolygonType, layer: ThreeLayer, center: maptalks.Coordinate, centerPt: THREE.Vector3, isArrayBuff = false): Array<Array<Array<Array<number>> | ArrayBufferLike>> {
+export function getPolygonPositions(polygon: PolygonType, layer: ThreeLayer, center: any, centerPt: THREE.Vector3, isArrayBuff = false): Array<Array<Array<Array<number>> | ArrayBufferLike>> {
     if (!polygon) {
         return null;
     }
@@ -153,7 +153,7 @@ export function getPolygonPositions(polygon: PolygonType, layer: ThreeLayer, cen
 }
 
 export function getSinglePolygonPositions(polygon: SinglePolygonType, layer: ThreeLayer,
-    center: maptalks.Coordinate, centerPt: THREE.Vector3, isArrayBuff = false): Array<Array<Array<number>> | ArrayBufferLike> {
+    center: any, centerPt: THREE.Vector3, isArrayBuff = false): Array<Array<Array<number>> | ArrayBufferLike> {
     let shell: Array<any>, holes: Array<any>;
     //it is pre for geojson,Possible later use of geojson
     if (isGeoJSONPolygon(polygon as any)) {
