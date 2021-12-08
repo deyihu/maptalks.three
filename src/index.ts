@@ -75,6 +75,22 @@ const EVENTS = [
 ];
 const TEMP_COORD = new maptalks.Coordinate(0, 0);
 const TEMP_POINT = new maptalks.Point(0, 0);
+const requestIdleCallback = (window as any).requestIdleCallback;
+let isidle = true;
+function requestIdleLoop(deadline) {
+    isidle = false;
+    if (!deadline) {
+        isidle = true;
+    } else if (deadline.didTimeout) {
+        isidle = true;
+    } else if (deadline.timeRemaining() > 5) {
+        isidle = true;
+    }
+    requestIdleCallback(requestIdleLoop, { timeout: 2000 });
+}
+if (requestIdleCallback) {
+    requestIdleCallback(requestIdleLoop);
+}
 
 
 // const MATRIX4 = new THREE.Matrix4();
@@ -577,7 +593,7 @@ class ThreeLayer extends maptalks.CanvasLayer {
             return;
         }
         const map = this.getMap();
-        if (!map || map.isAnimating() || map.isInteracting()) {
+        if (!isidle || !map || map.isAnimating() || map.isInteracting()) {
             return;
         }
         const loopRenderCount = this.options.loopRenderCount || 50;
