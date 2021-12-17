@@ -417,7 +417,7 @@ class BaseObject extends maptalks.Eventable(Base) {
 
 
     bindTooltip(content, options) {
-        return this.bindTooltip(content, options));
+        return this.bindTooltip(content, options);
     }
 
     bindToolTip(content, options) {

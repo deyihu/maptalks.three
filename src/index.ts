@@ -173,7 +173,7 @@ class ThreeLayer extends maptalks.CanvasLayer {
         return new THREE.Vector3(p.x, p.y, z);
     }
 
-    coordinatiesToGLFloatArray(coordinaties: Array<maptalks.Coordinate | Array<number>>, centerPt: THREE.Vector3): Float32Array {
+    coordinatiesToGLFloatArray(coordinaties: Array<Array<number>>, centerPt: THREE.Vector3): Float32Array {
         const map = this.getMap();
         if (!map) {
             return null;
@@ -200,7 +200,7 @@ class ThreeLayer extends maptalks.CanvasLayer {
         return array;
     }
 
-    coordinatiesToGLArray(coordinaties: Array<maptalks.Coordinate | Array<number>>, centerPt: THREE.Vector3): Array<Array<number>> {
+    coordinatiesToGLArray(coordinaties: Array<Array<number>>, centerPt: THREE.Vector3): Array<Array<number>> {
         const map = this.getMap();
         if (!map) {
             return null;
