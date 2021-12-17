@@ -48,12 +48,11 @@ export function getActor() {
     if (!maptalks.worker) {
         console.error('maptalks.worker is not defined,You can\'t use ThreeVectorTileLayer');
     }
-    if (!actor) {
+    if (!actor && MeshActor) {
         actor = new MeshActor(getWorkerName());
     }
     return actor;
 }
-
 /**
  * generate extrudepolygons data for worker
  * @param {*} polygons

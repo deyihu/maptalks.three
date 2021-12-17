@@ -165,15 +165,64 @@ class ThreeLayer extends maptalks.CanvasLayer {
         if (isArray) {
             TEMP_COORD.x = coordinate[0];
             TEMP_COORD.y = coordinate[1];
-        }
-        if (!isArray) {
-            if (!(coordinate instanceof maptalks.Coordinate)) {
-                coordinate = new maptalks.Coordinate(coordinate);
-            }
+        } else if (!(coordinate instanceof maptalks.Coordinate)) {
+            coordinate = new maptalks.Coordinate(coordinate);
         }
         const res = getGLRes(map);
         const p = coordinateToPoint(map, isArray ? TEMP_COORD : coordinate, res, TEMP_POINT);
         return new THREE.Vector3(p.x, p.y, z);
+    }
+
+    coordinatiesToGLFloatArray(coordinaties: Array<maptalks.Coordinate | Array<number>>, centerPt: THREE.Vector3): Float32Array {
+        const map = this.getMap();
+        if (!map) {
+            return null;
+        }
+        const res = getGLRes(map);
+        const len = coordinaties.length;
+        const array = new Float32Array(len * 2);
+        for (let i = 0; i < len; i++) {
+            let coordinate = coordinaties[i];
+            const isArray = Array.isArray(coordinate);
+            if (isArray) {
+                TEMP_COORD.x = coordinate[0];
+                TEMP_COORD.y = coordinate[1];
+            } else if (!(coordinate instanceof maptalks.Coordinate)) {
+                coordinate = new maptalks.Coordinate(coordinate);
+            }
+            const p = coordinateToPoint(map, isArray ? TEMP_COORD : coordinate, res, TEMP_POINT);
+            p.x -= centerPt.x;
+            p.y -= centerPt.y;
+            const idx = i * 2;
+            array[idx] = p.x;
+            array[idx + 1] = p.y;
+        }
+        return array;
+    }
+
+    coordinatiesToGLArray(coordinaties: Array<maptalks.Coordinate | Array<number>>, centerPt: THREE.Vector3): Array<Array<number>> {
+        const map = this.getMap();
+        if (!map) {
+            return null;
+        }
+        const res = getGLRes(map);
+        const len = coordinaties.length;
+        const array = new Array(len);
+        for (let i = 0; i < len; i++) {
+            let coordinate = coordinaties[i];
+            const isArray = Array.isArray(coordinate);
+            if (isArray) {
+                TEMP_COORD.x = coordinate[0];
+                TEMP_COORD.y = coordinate[1];
+            } else if (!(coordinate instanceof maptalks.Coordinate)) {
+                coordinate = new maptalks.Coordinate(coordinate);
+            }
+            const p = coordinateToPoint(map, isArray ? TEMP_COORD : coordinate, res, TEMP_POINT);
+            p.x -= centerPt.x;
+            p.y -= centerPt.y;
+            array[i] = [p.x, p.y];
+        }
+        return array;
     }
 
     /**
