@@ -1,6 +1,5 @@
-import { DEFAULT_EXTENSIONS } from '@babel/core';
 const resolve = require('rollup-plugin-node-resolve');
-import { babel } from '@rollup/plugin-babel';
+// import { babel } from '@rollup/plugin-babel';
 const commonjs = require('rollup-plugin-commonjs');
 // const uglify = require('rollup-plugin-uglify').uglify;
 import { terser } from 'rollup-plugin-terser';
@@ -53,30 +52,30 @@ const basePlugins = [
     removeGlobal()
 ];
 
-const es5BasePlugins = [
-    json(),
-    typescript({
+// const es5BasePlugins = [
+//     json(),
+//     typescript({
 
-    }),
-    //handle node_modules
-    resolve({
-        module: true,
-        jsnext: true,
-        main: true
-    }),
-    commonjs(),
-    //handle ES2015+
-    babel({
-        exclude: 'node_modules/**',
-        babelHelpers: 'bundled',
-        extensions: [
-            ...DEFAULT_EXTENSIONS,
-            '.ts',
-            '.tsx'
-        ]
-    }),
-    removeGlobal()
-];
+//     }),
+//     //handle node_modules
+//     resolve({
+//         module: true,
+//         jsnext: true,
+//         main: true
+//     }),
+//     commonjs(),
+//     //handle ES2015+
+//     babel({
+//         exclude: 'node_modules/**',
+//         babelHelpers: 'bundled',
+//         extensions: [
+//             ...DEFAULT_EXTENSIONS,
+//             '.ts',
+//             '.tsx'
+//         ]
+//     }),
+//     removeGlobal()
+// ];
 
 module.exports = [
     {
