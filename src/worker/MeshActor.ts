@@ -1,5 +1,5 @@
 import { isGeoJSONLine, isGeoJSONPolygon } from '../util/GeoJSONUtil';
-import { getPolygonPositions } from '../util/ExtrudeUtil';
+import { getPolygonArrayBuffer, getPolygonPositions } from '../util/ExtrudeUtil';
 // import pkg from './../../package.json';
 import { getLinePosition } from '../util/LineUtil';
 import { LineStringType, PolygonType, SingleLineStringType } from './../type/index';
@@ -18,21 +18,24 @@ if (maptalks.worker) {
         pushQueue(q: any = {}) {
             const { type, data, callback, layer, key, center, lineStrings } = q;
             let params;
-            if (type === 'Polygon') {
+            if (type.indexOf('ExtrudePolygon') > -1) {
                 params = gengerateExtrudePolygons(data, center, layer);
-            } else if (type === 'LineString') {
-                //todo liness
+            } else if (type === 'ExtrudeLines') {
                 params = gengerateExtrudeLines(data, center, layer, lineStrings);
             } else if (type === 'Point') {
                 //todo points
             }
-            this.send({ type, datas: params.datas }, params.transfe, function (err, message) {
-                if (err) {
-                    console.error(err);
-                }
-                message.key = key;
-                callback(message);
-            });
+            if (!params) {
+                return;
+            }
+            this.send({ type, datas: params.datas, glRes: params.glRes, matrix: params.matrix, center: params.center },
+                params.transfer, function (err, message) {
+                    if (err) {
+                        console.error(err);
+                    }
+                    message.key = key;
+                    callback(message);
+                });
         }
 
 
@@ -58,13 +61,33 @@ export function getActor() {
  * @param {*} polygons
  * @param {*} layer
  */
-function gengerateExtrudePolygons(polygons: PolygonType[] = [], center: any, layer: ThreeLayer) {
-    const centerPt = layer.coordinateToVector3(center);
+function gengerateExtrudePolygons(polygons: PolygonType[] = [], center, layer: ThreeLayer) {
+    const isMercator = layer.isMercator();
+    let glRes, matrix;
+    if (isMercator) {
+        const map = layer.getMap();
+        glRes = map.getGLRes();
+        matrix = map.getSpatialReference().getTransformation().matrix;
+    }
+    let centerPt;
+    if (center) {
+        centerPt = layer.coordinateToVector3(center);
+    }
     const len = polygons.length;
     const datas = [], transfer = [], altCache = {};
     for (let i = 0; i < len; i++) {
         const polygon = polygons[i];
-        const data = getPolygonPositions(polygon, layer, center, centerPt, true);
+        const p = (polygon as any);
+        const properties = p._properties ? p._properties : (isGeoJSONPolygon(p) ? p['properties'] : p.getProperties() || {});
+        if (!center) {
+            centerPt = layer.coordinateToVector3(properties.center);
+        }
+        let data;
+        if (isMercator) {
+            data = getPolygonArrayBuffer(polygon);
+        } else {
+            data = getPolygonPositions(polygon, layer, properties.center || center, centerPt, true);
+        }
         for (let j = 0, len1 = data.length; j < len1; j++) {
             const d = data[j];
             for (let m = 0, len2 = d.length; m < len2; m++) {
@@ -72,7 +95,6 @@ function gengerateExtrudePolygons(polygons: PolygonType[] = [], center: any, lay
                 transfer.push(d[m]);
             }
         }
-        const properties = (isGeoJSONPolygon(polygon as any) ? polygon['properties'] : (polygon as any).getProperties() || {});
         let height = properties.height || 1;
         let bottomHeight = properties.bottomHeight || 0;
         if (bottomHeight !== undefined && typeof bottomHeight === 'number' && bottomHeight !== 0) {
@@ -85,15 +107,23 @@ function gengerateExtrudePolygons(polygons: PolygonType[] = [], center: any, lay
             altCache[height] = layer.distanceToVector3(height, height).x;
         }
         height = altCache[height];
-        datas.push({
+        const d = {
+            id: properties.id,
             data,
             height,
             bottomHeight
-        });
+        };
+        if (isMercator) {
+            (d as any).center = [centerPt.x, centerPt.y];
+        }
+        datas.push(d);
     }
     return {
         datas,
-        transfer
+        transfer,
+        glRes,
+        matrix,
+        center: isMercator ? [centerPt.x, centerPt.y] : null
     };
 }
 
@@ -127,9 +157,9 @@ function gengerateExtrudeLines(lineStringList: Array<Array<SingleLineStringType>
         const data = [];
         for (let j = 0, len1 = multiLineString.length; j < len1; j++) {
             const lineString = multiLineString[j];
-            const positions2d = getLinePosition(lineString, layer, center).positions2d;
-            transfer.push(positions2d);
-            data.push(positions2d);
+            const arrayBuffer = getLinePosition(lineString, layer, center, false).arrayBuffer;
+            transfer.push(arrayBuffer);
+            data.push(arrayBuffer);
         }
         datas.push({
             data,

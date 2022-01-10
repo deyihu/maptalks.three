@@ -37,6 +37,8 @@ import { getWorkerCode, getWorkerName } from './worker/getworker';
 import LineGeometry from './util/fatline/LineGeometry';
 import Line2 from './util/fatline/Line2';
 import maptalks from './MTK';
+import { BaseObjectTaskManager } from './BaseObjectTaskManager';
+
 
 const options: BaseLayerOptionType = {
     'renderer': 'gl',
@@ -61,7 +63,11 @@ const LINEPRECISIONS = [
     [5, 0.7],
     [2, 0.1],
     [1, 0.05],
-    [0.5, 0.02]
+    [0.5, 0.02],
+    [0.4, 0.01],
+    [0.1, 0.005],
+    [0.05, 0.002],
+    [0.01, 0.001]
 ];
 
 const EVENTS = [
@@ -124,6 +130,19 @@ class ThreeLayer extends maptalks.CanvasLayer {
         this.type = 'ThreeLayer';
     }
 
+    isMercator() {
+        const map = this.getMap();
+        if (!map) {
+            return false;
+        }
+        const sp = map.getSpatialReference();
+        const prj = sp._projection, res = sp._resolutions;
+        if (prj && prj.code === 'EPSG:3857' && res && res.length && Math.floor(res[0]) === 156543) {
+            return true;
+        }
+        return false;
+    }
+
     isRendering(): boolean {
         const map = this.getMap();
         if (!map) {
@@ -173,7 +192,10 @@ class ThreeLayer extends maptalks.CanvasLayer {
         return new THREE.Vector3(p.x, p.y, z);
     }
 
-    coordinatiesToGLFloatArray(coordinaties: Array<Array<number>>, centerPt: THREE.Vector3): Float32Array {
+    coordinatiesToGLFloatArray(coordinaties: Array<Array<number>>, centerPt: THREE.Vector3): {
+        positions: Float32Array,
+        positons2d: Float32Array
+    } {
         const map = this.getMap();
         if (!map) {
             return null;
@@ -181,6 +203,7 @@ class ThreeLayer extends maptalks.CanvasLayer {
         const res = getGLRes(map);
         const len = coordinaties.length;
         const array = new Float32Array(len * 2);
+        const array3d = new Float32Array(len * 3);
         for (let i = 0; i < len; i++) {
             let coordinate = coordinaties[i];
             const isArray = Array.isArray(coordinate);
@@ -196,8 +219,17 @@ class ThreeLayer extends maptalks.CanvasLayer {
             const idx = i * 2;
             array[idx] = p.x;
             array[idx + 1] = p.y;
+
+            const idx1 = i * 3
+            array3d[idx1] = p.x;
+            array3d[idx1 + 1] = p.y;
+            array3d[idx1 + 2] = 0;
+
         }
-        return array;
+        return {
+            positions: array3d,
+            positons2d: array
+        };
     }
 
     coordinatiesToGLArray(coordinaties: Array<Array<number>>, centerPt: THREE.Vector3): Array<Array<number>> {
@@ -1133,6 +1165,7 @@ class ThreeRenderer extends maptalks.renderer.CanvasLayerRenderer {
         this._syncCamera();
         scene.add(camera);
         this.pick = new GPUPick(this.layer);
+        BaseObjectTaskManager.star();
     }
 
     onCanvasCreate() {
