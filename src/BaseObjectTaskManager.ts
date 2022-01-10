@@ -1,4 +1,4 @@
-import * as maptalks from 'maptalks';
+import maptalks from './MTK';
 import BaseObject from './BaseObject';
 import { ThreeLayer } from './index';
 import { getActor } from './worker/MeshActor';
