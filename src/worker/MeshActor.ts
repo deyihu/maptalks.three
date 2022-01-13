@@ -66,12 +66,8 @@ function gengerateExtrudePolygons(polygons: PolygonType[] = [], center, layer: T
     let glRes, matrix;
     if (isMercator) {
         const map = layer.getMap();
-        if (map.getGLRes) {
-            glRes = map.getGLRes();
-            matrix = map.getSpatialReference().getTransformation().matrix;
-        } else {
-            isMercator = false;
-        }
+        glRes = map.getGLRes();
+        matrix = map.getSpatialReference().getTransformation().matrix;
     }
     let centerPt;
     if (center) {
