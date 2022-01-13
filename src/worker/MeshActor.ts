@@ -62,12 +62,16 @@ export function getActor() {
  * @param {*} layer
  */
 function gengerateExtrudePolygons(polygons: PolygonType[] = [], center, layer: ThreeLayer) {
-    const isMercator = layer.isMercator();
+    let isMercator = layer.isMercator();
     let glRes, matrix;
     if (isMercator) {
         const map = layer.getMap();
-        glRes = map.getGLRes();
-        matrix = map.getSpatialReference().getTransformation().matrix;
+        if (map.getGLRes) {
+            glRes = map.getGLRes();
+            matrix = map.getSpatialReference().getTransformation().matrix;
+        } else {
+            isMercator = false;
+        }
     }
     let centerPt;
     if (center) {
@@ -117,6 +121,10 @@ function gengerateExtrudePolygons(polygons: PolygonType[] = [], center, layer: T
             (d as any).center = [centerPt.x, centerPt.y];
         }
         datas.push(d);
+        //delete Internal properties
+        if (p._properties) {
+            delete p._properties;
+        }
     }
     return {
         datas,
