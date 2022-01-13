@@ -1,11 +1,6 @@
 {
-<<<<<<< HEAD
   "name": "yy.maptalks.three",
-  "version": "0.17.11",
-=======
-  "name": "maptalks.three",
-  "version": "0.18.1",
->>>>>>> master
+  "version": "0.18.0",
   "description": "A maptalks Layer to render with THREE.js.",
   "license": "MIT",
   "repository": {
