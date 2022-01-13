@@ -25,10 +25,12 @@ export type BaseObjectOptionType = {
     asynchronous?: boolean,
     properties?: any,
     layer?: any,
-    coordinate?,
-    lineString?,
-    polygon?,
-    index?: number
+    coordinate?: any,
+    lineString?: any,
+    polygon?: any,
+    index?: number,
+    id?: string,
+    center?: any
 };
 
 export type BarOptionType = BaseObjectOptionType & {
