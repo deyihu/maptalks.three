@@ -27,6 +27,7 @@ declare namespace Util {
   function extend(...obj: any[]): any
   function sign(params: number): number
   function now(): number
+  function requestAnimFrame(params: Function)
 }
 
 declare const animation: {
@@ -84,7 +85,7 @@ declare namespace renderer {
     getMap(): Map
     completeRender(): void
     remove(): void
-
+    setToRedraw(): void
 
   }
 }
@@ -107,10 +108,12 @@ declare class CanvasLayer {
   constructor(id: string, options: Object)
   fire(eventType: string, params: any): boolean
   getMap(): Map
+  redraw(): void
   static mergeOptions(options: Object): void
   onAdd(): void
   onRemove(): void
   _getRenderer(): any
+  getRenderer(): any
   static registerRenderer(type: string, render: any): void
   onCanvasCreate(...params: any[]): void
 
@@ -170,6 +173,7 @@ declare class Map {
   getProjection(): any
   isInteracting(): boolean
   isAnimating(): boolean
+  getSpatialReference(): any
 }
 
 

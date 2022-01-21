@@ -5,6 +5,7 @@ import { addAttribute } from './ThreeAdaptUtil';
 import { ThreeLayer } from './../index';
 import { MergeAttributeType, PolygonType, SinglePolygonType } from './../type/index';
 import maptalks from './../MTK';
+import { coordiantesToArrayBuffer } from '.';
 
 const topColor: THREE.Color = new THREE.Color('#fff'),
     bottomColor: THREE.Color = new THREE.Color('#fff');
@@ -177,13 +178,13 @@ export function getSinglePolygonPositions(polygon: SinglePolygonType, layer: Thr
         center = center || getGeoJSONCenter(polygon as any);
     } else if (polygon instanceof maptalks.Polygon) {
         shell = polygon.getShell();
-        holes = polygon.getHoles(); 
+        holes = polygon.getHoles();
         center = center || polygon.getCenter();
     }
     centerPt = centerPt || layer.coordinateToVector3(center);
     let outer: Array<Array<number>> | Float32Array;
     if (isArrayBuff) {
-        outer = layer.coordinatiesToGLFloatArray(shell, centerPt);
+        outer = layer.coordinatiesToGLFloatArray(shell, centerPt).positons2d;
     } else {
         outer = layer.coordinatiesToGLArray(shell, centerPt);
     }
@@ -192,7 +193,7 @@ export function getSinglePolygonPositions(polygon: SinglePolygonType, layer: Thr
         for (let i = 0, len = holes.length; i < len; i++) {
             let pts: Array<Array<number>> | Float32Array;
             if (isArrayBuff) {
-                pts = layer.coordinatiesToGLFloatArray(holes[i], centerPt);
+                pts = layer.coordinatiesToGLFloatArray(holes[i], centerPt).positons2d;
             } else {
                 pts = layer.coordinatiesToGLArray(holes[i], centerPt);
             }
@@ -202,3 +203,51 @@ export function getSinglePolygonPositions(polygon: SinglePolygonType, layer: Thr
     return data;
 }
 
+export function getPolygonArrayBuffer(polygon: PolygonType): Array<Array<ArrayBufferLike>> {
+    if (!polygon) {
+        return null;
+    }
+    let datas = [];
+    if (polygon instanceof maptalks.MultiPolygon) {
+        datas = polygon.getGeometries().map(p => {
+            return getSinglePolygonArrayBuffer(p, false);
+        });
+    } else if (polygon instanceof maptalks.Polygon) {
+        const data = getSinglePolygonArrayBuffer(polygon, false);
+        datas.push(data);
+    } else if (isGeoJSONPolygon(polygon)) {
+        // const cent = getGeoJSONCenter(polygon);
+        if (!isGeoJSONMulti(polygon)) {
+            const data = getSinglePolygonArrayBuffer(polygon as any, true);
+            datas.push(data);
+        } else {
+            const fs = spliteGeoJSONMulti(polygon);
+            for (let i = 0, len = fs.length; i < len; i++) {
+                datas.push(getSinglePolygonArrayBuffer(fs[i] as any, true));
+            }
+        }
+    }
+    return datas;
+}
+
+export function getSinglePolygonArrayBuffer(polygon: SinglePolygonType, isGeoJSON: boolean): Array<ArrayBufferLike> {
+    let shell: Array<any>, holes: Array<any>;
+    //it is pre for geojson,Possible later use of geojson
+    if (isGeoJSON) {
+        const coordinates = getGeoJSONCoordinates(polygon as any);
+        shell = coordinates[0] as Array<any>;
+        holes = coordinates.slice(1, coordinates.length);
+    } else if (polygon instanceof maptalks.Polygon) {
+        shell = polygon.getShell();
+        holes = polygon.getHoles();
+    }
+    const outer = coordiantesToArrayBuffer(shell);
+    const data = [outer];
+    if (holes && holes.length > 0) {
+        for (let i = 0, len = holes.length; i < len; i++) {
+            const pts = coordiantesToArrayBuffer(holes[i]);
+            data.push(pts);
+        }
+    }
+    return data;
+}

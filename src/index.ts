@@ -37,6 +37,8 @@ import { getWorkerCode, getWorkerName } from './worker/getworker';
 import LineGeometry from './util/fatline/LineGeometry';
 import Line2 from './util/fatline/Line2';
 import maptalks from './MTK';
+import { BaseObjectTaskManager } from './BaseObjectTaskManager';
+
 
 const options: BaseLayerOptionType = {
     'renderer': 'gl',
@@ -61,7 +63,11 @@ const LINEPRECISIONS = [
     [5, 0.7],
     [2, 0.1],
     [1, 0.05],
-    [0.5, 0.02]
+    [0.5, 0.02],
+    [0.4, 0.01],
+    [0.1, 0.005],
+    [0.05, 0.002],
+    [0.01, 0.001]
 ];
 
 const EVENTS = [
@@ -80,6 +86,7 @@ const TEMP_POINT = new maptalks.Point(0, 0);
 
 const DEFAULT_CENTER = new maptalks.Coordinate(0, 0);
 
+const KEY_FBO = '__webglFramebuffer';
 
 // const MATRIX4 = new THREE.Matrix4();
 
@@ -124,6 +131,19 @@ class ThreeLayer extends maptalks.CanvasLayer {
         this.type = 'ThreeLayer';
     }
 
+    isMercator() {
+        const map = this.getMap();
+        if (!map) {
+            return false;
+        }
+        const sp = map.getSpatialReference();
+        const prj = sp._projection, res = sp._resolutions;
+        if (prj && prj.code === 'EPSG:3857' && res && res.length && Math.floor(res[0]) === 156543 && map.getGLRes) {
+            return true;
+        }
+        return false;
+    }
+
     isRendering(): boolean {
         const map = this.getMap();
         if (!map) {
@@ -139,16 +159,16 @@ class ThreeLayer extends maptalks.CanvasLayer {
      * Draw method of ThreeLayer
      * In default, it calls renderScene, refresh the camera and the scene
      */
-    draw() {
-        this.renderScene();
+    draw(gl, view, scene, camera, timeStamp, context) {
+        this.renderScene(context, this);
     }
 
     /**
      * Draw method of ThreeLayer when map is interacting
      * In default, it calls renderScene, refresh the camera and the scene
      */
-    drawOnInteracting() {
-        this.renderScene();
+    drawOnInteracting(gl, view, scene, camera, event, timeStamp, context) {
+        this.renderScene(context, this);
     }
     /**
      * Convert a geographic coordinate to THREE Vector3
@@ -173,7 +193,10 @@ class ThreeLayer extends maptalks.CanvasLayer {
         return new THREE.Vector3(p.x, p.y, z);
     }
 
-    coordinatiesToGLFloatArray(coordinaties: Array<Array<number>>, centerPt: THREE.Vector3): Float32Array {
+    coordinatiesToGLFloatArray(coordinaties: Array<Array<number>>, centerPt: THREE.Vector3): {
+        positions: Float32Array,
+        positons2d: Float32Array
+    } {
         const map = this.getMap();
         if (!map) {
             return null;
@@ -181,6 +204,7 @@ class ThreeLayer extends maptalks.CanvasLayer {
         const res = getGLRes(map);
         const len = coordinaties.length;
         const array = new Float32Array(len * 2);
+        const array3d = new Float32Array(len * 3);
         for (let i = 0; i < len; i++) {
             let coordinate = coordinaties[i];
             const isArray = Array.isArray(coordinate);
@@ -196,8 +220,17 @@ class ThreeLayer extends maptalks.CanvasLayer {
             const idx = i * 2;
             array[idx] = p.x;
             array[idx + 1] = p.y;
+
+            const idx1 = i * 3
+            array3d[idx1] = p.x;
+            array3d[idx1 + 1] = p.y;
+            array3d[idx1 + 2] = 0;
+
         }
-        return array;
+        return {
+            positions: array3d,
+            positons2d: array
+        };
     }
 
     coordinatiesToGLArray(coordinaties: Array<Array<number>>, centerPt: THREE.Vector3): Array<Array<number>> {
@@ -615,11 +648,15 @@ class ThreeLayer extends maptalks.CanvasLayer {
         return null;
     }
 
-    renderScene() {
+    renderScene(context?: Object, layer?: any) {
         const renderer = this._getRenderer();
         if (renderer) {
             renderer.clearCanvas();
-            renderer.renderScene();
+            renderer.renderScene(context);
+            //外部调用时，直接redraw
+            if (!layer) {
+                renderer.setToRedraw();
+            }
         }
         return this;
     }
@@ -705,7 +742,10 @@ class ThreeLayer extends maptalks.CanvasLayer {
         });
         this._zoomend();
         if (render) {
-            this.renderScene();
+            const renderer = this._getRenderer();
+            if (renderer) {
+                renderer.setToRedraw();
+            }
         }
         return this;
     }
@@ -744,7 +784,10 @@ class ThreeLayer extends maptalks.CanvasLayer {
             }
         });
         if (render) {
-            this.renderScene();
+            const renderer = this._getRenderer();
+            if (renderer) {
+                renderer.setToRedraw();
+            }
         }
         return this;
     }
@@ -1073,6 +1116,7 @@ class ThreeRenderer extends maptalks.renderer.CanvasLayerRenderer {
     matrix4: THREE.Matrix4;
     pick: GPUPick;
     _renderTime: number = 0;
+    _renderTarget: THREE.WebGLRenderTarget = null;
 
     getPrepareParams(): Array<any> {
         return [this.scene, this.camera];
@@ -1133,6 +1177,7 @@ class ThreeRenderer extends maptalks.renderer.CanvasLayerRenderer {
         this._syncCamera();
         scene.add(camera);
         this.pick = new GPUPick(this.layer);
+        BaseObjectTaskManager.star();
     }
 
     onCanvasCreate() {
@@ -1181,7 +1226,7 @@ class ThreeRenderer extends maptalks.renderer.CanvasLayerRenderer {
         return null;
     }
 
-    renderScene() {
+    renderScene(context) {
         const time = maptalks.Util.now();
         // Make sure to execute only once in a frame
         if (time - this._renderTime >= 16) {
@@ -1189,12 +1234,46 @@ class ThreeRenderer extends maptalks.renderer.CanvasLayerRenderer {
             this._renderTime = time;
         }
         this._syncCamera();
-        this.context.render(this.scene, this.camera);
+        // 把 WebglRenderTarget 中的 framebuffer 替换为 GroupGLLayer 中的 fbo
+        // 参考: https://stackoverflow.com/questions/55082573/use-webgl-texture-as-a-three-js-texture-map
+        // 实现有点 hacky，需要留意 three 版本变动 对它的影响
+        if (context && context.renderTarget) {
+            const { width, height } = context.renderTarget.fbo;
+            if (!this._renderTarget) {
+                this._renderTarget = new THREE.WebGLRenderTarget(width, height, {
+                    // depthTexture: new THREE.DepthTexture(width, height, THREE.UnsignedInt248Type)
+                    depthBuffer: false
+                });
+                // 绘制一次以后，才会生成 framebuffer 对象
+                this.context.setRenderTarget(this._renderTarget);
+                this.context.render(this.scene, this.camera);
+            } else {
+                // 这里不能setSize，因为setSize中会把原有的fbo dipose掉
+                // this._renderTarget.setSize(width, height);
+                this._renderTarget.viewport.set(0, 0, width, height);
+                this._renderTarget.scissor.set(0, 0, width, height);
+            }
+            const renderTargetProps = this.context.properties.get(this._renderTarget);
+
+            const threeCreatedFBO = renderTargetProps[KEY_FBO];
+            // 用GroupGLLayer的webgl fbo对象替换WebglRenderTarget的fbo对象
+            renderTargetProps[KEY_FBO] = context.renderTarget.getFramebuffer(context.renderTarget.fbo);
+            this.context.setRenderTarget(this._renderTarget);
+            this.context.render(this.scene, this.camera);
+            renderTargetProps[KEY_FBO] = threeCreatedFBO;
+        } else {
+            this.context.render(this.scene, this.camera);
+        }
+        this.context.setRenderTarget(null);
         this.completeRender();
     }
 
     remove() {
         delete this._drawContext;
+        if (this._renderTarget) {
+            this._renderTarget.dispose();
+            delete this._renderTarget;
+        }
         super.remove();
     }
 

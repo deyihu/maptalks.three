@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import BaseObject from './BaseObject';
-import { getLinePosition, LineStringSplit, setLineSegmentPosition } from './util/LineUtil';
+import { getLinePosition, getLineSegmentPosition, LineStringSplit, mergeLinePositions } from './util/LineUtil';
 import LineGeometry from './util/fatline/LineGeometry';
 import Line2 from './util/fatline/Line2';
 import LineMaterial from './util/fatline/LineMaterial';
@@ -9,6 +9,7 @@ import { ThreeLayer } from './index';
 import { getVertexColors } from './util/ThreeAdaptUtil';
 import { setBottomHeight } from './util';
 import maptalks from './MTK';
+import { FatLineTaskIns } from './BaseObjectTaskManager';
 
 const OPTIONS = {
     bottomHeight: 0,
@@ -20,23 +21,42 @@ class FatLine extends BaseObject {
         options = maptalks.Util.extend({}, OPTIONS, options, { layer, lineString });
         super();
         this._initOptions(options);
+        const { asynchronous } = options;
         const { lineStrings, center } = LineStringSplit(lineString);
-        const ps = [], cache = {};
-        for (let m = 0, le = lineStrings.length; m < le; m++) {
-            const positionsV = getLinePosition(lineStrings[m], layer, center).positionsV;
-            setBottomHeight(positionsV, options.bottomHeight, layer, cache);
-            setLineSegmentPosition(ps, positionsV);
-        }
         const geometry = new LineGeometry();
-        geometry.setPositions(ps);
+        let position: Float32Array;
+        if (asynchronous) {
+            const id = maptalks.Util.GUID();
+            this.getOptions().id = id;
+            this.getOptions().center = center;
+            FatLineTaskIns.push({
+                id,
+                data: lineStrings,
+                lineString,
+                center,
+                layer,
+                baseObject: this
+            });
+        } else {
+            const positionList = [], cache = {};
+            for (let m = 0, le = lineStrings.length; m < le; m++) {
+                const positions = getLinePosition(lineStrings[m], layer, center, false).positions;
+                setBottomHeight(positions, options.bottomHeight, layer, cache);
+                positionList.push(getLineSegmentPosition(positions));
+            }
+            position = mergeLinePositions(positionList);
+            geometry.setPositions(position);
+        }
         this._setMaterialRes(layer, material);
         this._createLine2(geometry, material);
         const { altitude } = options;
         const z = layer.distanceToVector3(altitude, altitude).x;
         const v = layer.coordinateToVector3(center, z);
         this.getObject3d().position.copy(v);
-        this._setPickObject3d(ps, material.linewidth);
-        this._init();
+        if (!asynchronous) {
+            this._setPickObject3d(position, material.linewidth);
+            this._init();
+        }
         this.type = 'FatLine';
     }
 
@@ -97,6 +117,20 @@ class FatLine extends BaseObject {
             (this.getObject3d() as any).material = material;
         }
         return this;
+    }
+
+    _workerLoad(result) {
+        const position = new Float32Array(result.position);
+        const object3d = this.getObject3d();
+        (object3d as any).geometry.setPositions(position);
+        (object3d as any).computeLineDistances();
+        this._setPickObject3d(position, (object3d as any).material.linewidth);
+        this._init();
+        if (this.isAdd) {
+            const pick = this.getLayer().getPick();
+            pick.add(this.pickObject3d);
+        }
+        this._fire('workerload', { target: this });
     }
 
 }

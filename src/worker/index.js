@@ -5,32 +5,135 @@ export const initialize = function () {
 
 export const onmessage = function (message, postResponse) {
     const data = message.data;
-    let { type, datas } = data;
-    if (type === 'Polygon') {
-        generateData(datas);
+    let { type, datas, glRes, matrix, center } = data;
+    if (type === 'ExtrudePolygons') {
+        generateData(datas, center, glRes, matrix);
         const result = generateExtrude(datas);
         postResponse(null, result, [result.position, result.normal, result.uv, result.indices]);
-    } else if (type === 'LineString') {
+    } else if (type === 'ExtrudeLines') {
         for (let i = 0, len = datas.length; i < len; i++) {
             for (let j = 0, len1 = datas[i].data.length; j < len1; j++) {
-                datas[i].data[j] = arrayBufferToArray(datas[i].data[j]);
+                datas[i].data[j] = arrayBufferToArray(datas[i].data[j], datas[i].center || center, glRes, matrix);
             }
         }
         const result = generateExtrude(datas, true);
         postResponse(null, result, [result.position, result.normal, result.uv, result.indices]);
+    } else if (type === 'ExtrudePolygon') {
+        const polygons = [], transfer = [];
+        datas.forEach(d => {
+            const polygon = [d];
+            generateData(polygon, center, glRes, matrix);
+            const { position, normal, uv, indices } = generateExtrude(polygon);
+            polygons.push({
+                id: d.id,
+                position,
+                normal,
+                uv,
+                indices
+            });
+            transfer.push(position, normal, uv, indices);
+        });
+        postResponse(null, polygons, transfer);
+    } else if (type === 'Line' || type === 'FatLine') {
+        const lines = [], transfer = [];
+        for (let i = 0, len = datas.length; i < len; i++) {
+            const positionList = [];
+            for (let j = 0, len1 = datas[i].data.length; j < len1; j++) {
+                datas[i].data[j] = arrayBufferToArray(datas[i].data[j], datas[i].center || center, glRes, matrix);
+                const array = lineArrayToFloatArray(datas[i].data[j]);
+                positionList.push(getLineSegmentPosition(array));
+            }
+            const position = mergeLinePositions(positionList);
+            setBottomHeight(position, datas[i].bottomHeight);
+            lines.push({
+                id: datas[i].id,
+                position: position.buffer
+            });
+            transfer.push(position.buffer);
+        }
+        postResponse(null, lines, transfer);
+    } else if (type === 'Lines' || type === 'FatLines') {
+        let faceIndex = 0, faceMap = [], geometriesAttributes = [],
+            psIndex = 0, positionList = [];
+        for (let i = 0, len = datas.length; i < len; i++) {
+            let psCount = 0;
+            for (let j = 0, len1 = datas[i].data.length; j < len1; j++) {
+                datas[i].data[j] = arrayBufferToArray(datas[i].data[j], datas[i].center || center, glRes, matrix);
+                const array = lineArrayToFloatArray(datas[i].data[j]);
+                setBottomHeight(array, datas[i].bottomHeight);
+                psCount += (array.length / 3 * 2 - 2);
+                positionList.push(getLineSegmentPosition(array));
+            }
+            const faceLen = psCount;
+            faceMap[i] = [faceIndex, faceIndex + faceLen];
+            faceIndex += faceLen;
+
+            geometriesAttributes[i] = {
+                position: {
+                    count: psCount,
+                    start: psIndex,
+                    end: psIndex + psCount * 3,
+                },
+                hide: false
+            };
+            if (type === 'FatLines') {
+                geometriesAttributes[i].instanceStart = {
+                    count: psCount,
+                    start: psIndex,
+                    end: psIndex + psCount * 3,
+                };
+                geometriesAttributes[i].instanceEnd = {
+                    count: psCount,
+                    start: psIndex,
+                    end: psIndex + psCount * 3,
+                };
+            }
+            psIndex += psCount * 3;
+        }
+        const position = mergeLinePositions(positionList);
+        postResponse(null, {
+            id: datas.id,
+            position: position.buffer,
+            geometriesAttributes,
+            faceMap
+        }, [position.buffer]);
+    } else if (type === 'ExtrudeLine') {
+        for (let i = 0, len = datas.length; i < len; i++) {
+            for (let j = 0, len1 = datas[i].data.length; j < len1; j++) {
+                datas[i].data[j] = arrayBufferToArray(datas[i].data[j], datas[i].center || center, glRes, matrix);
+            }
+        }
+        const lines = [], transfer = [];
+        datas.forEach(d => {
+            const line = [d];
+            const { position, normal, uv, indices } = generateExtrude(line, true);
+            lines.push({
+                id: d.id,
+                position,
+                normal,
+                uv,
+                indices
+            });
+            transfer.push(position, normal, uv, indices);
+        });
+        postResponse(null, lines, transfer);
     }
 };
 
+const TEMP_COORD = { x: 0, y: 0 }, TEMP_POINT = { x: 0, y: 0 };
 
-function generateData(list) {
+function generateData(list, center, glRes, matrix) {
     const len = list.length;
     for (let i = 0; i < len; i++) {
         const { data } = list[i];
+        center = list[i].center || center;
+        //multi
         for (let j = 0, len1 = data.length; j < len1; j++) {
             const d = data[j];
+            //poly
             for (let m = 0, len2 = d.length; m < len2; m++) {
                 //ring
-                list[i].data[j][m] = arrayBufferToArray(d[m]);
+                list[i].data[j][m] = arrayBufferToArray(d[m], center, glRes, matrix);
             }
         }
     }
@@ -38,11 +141,36 @@ function generateData(list) {
 
 
 
-function arrayBufferToArray(buffer) {
-    const ps = new Float32Array(buffer);
+function arrayBufferToArray(buffer, center, glRes, matrix) {
+    let ps;
+    if (glRes) {
+        ps = new Float64Array(buffer);
+    } else {
+        ps = new Float32Array(buffer);
+    }
     const vs = [];
     for (let i = 0, len = ps.length; i < len; i += 2) {
-        const x = ps[i], y = ps[i + 1];
+        let x = ps[i], y = ps[i + 1];
+        if (center && glRes && matrix) {
+            TEMP_COORD.x = x;
+            TEMP_COORD.y = y;
+            let p = coordinateToMercator(TEMP_COORD, TEMP_POINT);
+            //is Mercator
+            TEMP_COORD.x = p.x;
+            TEMP_COORD.y = p.y;
+
+            p = transform(matrix, TEMP_COORD, glRes, TEMP_POINT);
+
+
+            //is GL point
+            x = p.x;
+            y = p.y;
+
+            //sub center
+            x -= center[0];
+            y -= center[1];
+
+        }
         vs.push([x, y]);
     }
     return vs;
@@ -183,5 +311,98 @@ function setBottomHeight(position, bottomHeight) {
             position[i + 2] += bottomHeight;
         }
     }
+}
+
+
+const rad = Math.PI / 180,
+    metersPerDegree = 6378137 * Math.PI / 180,
+    maxLatitude = 85.0511287798;
+
+function coordinateToMercator(lnglat, out) {
+    const max = maxLatitude;
+    const lng = lnglat.x,
+        lat = Math.max(Math.min(max, lnglat.y), -max);
+    let c;
+    if (lat === 0) {
+        c = 0;
+    } else {
+        c = Math.log(Math.tan((90 + lat) * rad / 2)) / rad;
+    }
+    const x = lng * metersPerDegree;
+    const y = c * metersPerDegree;
+    if (out) {
+        out.x = x;
+        out.y = y;
+        return out;
+    }
+    return {
+        x, y
+    };
+}
+
+function transform(matrix, coordinates, scale, out) {
+    const x = matrix[0] * (coordinates.x - matrix[2]) / scale;
+    const y = -matrix[1] * (coordinates.y - matrix[3]) / scale;
+    if (out) {
+        out.x = x;
+        out.y = y;
+        return out;
+    }
+    return {
+        x, y
+    };
+}
+
+function lineArrayToFloatArray(coordinates = []) {
+    const len = coordinates.length;
+    const array = new Float32Array(len * 3);
+    for (let i = 0; i < len; i++) {
+        const c = coordinates[i];
+        const idx = i * 3;
+        array[idx] = c[0];
+        array[idx + 1] = c[1];
+    }
+    return array;
+}
+
+
+function getLineSegmentPosition(ps) {
+    const position = new Float32Array(ps.length * 2 - 6);
+    let j = 0;
+    for (let i = 0, len = ps.length / 3; i < len; i++) {
+        const x = ps[i * 3], y = ps[i * 3 + 1], z = ps[i * 3 + 2];
+        if (i > 0 && i < len - 1) {
+            const idx = j * 3;
+            position[idx] = x;
+            position[idx + 1] = y;
+            position[idx + 2] = z;
+            j++;
+        }
+        const idx = j * 3;
+        position[idx] = x;
+        position[idx + 1] = y;
+        position[idx + 2] = z;
+        j++;
+    }
+    return position;
+}
+
+function mergeLinePositions(positionsList) {
+    let len = 0;
+    const l = positionsList.length;
+    if (l === 1) {
+        return positionsList[0];
+    }
+    for (let i = 0; i < l; i++) {
+        len += positionsList[i].length;
+    }
+    const position = new Float32Array(len);
+    let offset = 0;
+    for (let i = 0; i < l; i++) {
+        position.set(positionsList[i], offset);
+        offset += positionsList[i].length;
+    }
+    return position;
+
 }
 

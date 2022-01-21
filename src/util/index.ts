@@ -35,7 +35,7 @@ export function getCenterOfPoints(coordinates: Array<any> = []): any {
     return new maptalks.Coordinate(sumX / len, sumY / len);
 }
 
-export function setBottomHeight(geometry: THREE.BufferGeometry | MergeAttributeType | THREE.Vector3[], bottomHeight: number, layer: ThreeLayer,
+export function setBottomHeight(geometry: THREE.BufferGeometry | MergeAttributeType | THREE.Vector3[] | Float32Array, bottomHeight: number, layer: ThreeLayer,
     cache?: { [key: number]: number }): number {
     if (bottomHeight === undefined || typeof bottomHeight !== 'number' || bottomHeight === 0) {
         return 0;
@@ -43,7 +43,7 @@ export function setBottomHeight(geometry: THREE.BufferGeometry | MergeAttributeT
     let position;
     if (geometry instanceof THREE.BufferGeometry) {
         position = geometry.attributes.position.array;
-    } else if (Array.isArray(geometry)) {
+    } else if (Array.isArray(geometry) || geometry instanceof Float32Array) {
         position = geometry;
     } else {
         position = geometry.position;
@@ -80,4 +80,23 @@ export function getGeometriesColorArray(geometriesAttributes): Float32Array {
         colorsLen += count;
     }
     return new Float32Array(colorsLen * 3);
+}
+
+export function coordiantesToArrayBuffer(coordiantes = []): ArrayBuffer {
+    const len = coordiantes.length;
+    const array = new Float64Array(len * 2);
+    for (let i = 0; i < len; i++) {
+        let x, y;
+        const c = coordiantes[i];
+        if (c.x) {
+            x = c.x;
+            y = c.y;
+        } else {
+            x = c[0];
+            y = c[1];
+        }
+        array[i * 2] = x;
+        array[i * 2 + 1] = y;
+    }
+    return array.buffer;
 }
