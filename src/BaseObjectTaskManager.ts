@@ -86,7 +86,7 @@ class BaseObjectTask {
             const { id } = result;
             if (this.queueMap[id]) {
                 const { baseObject } = this.queueMap[id];
-                if (baseObject && baseObject._workerLoad) {
+                if (baseObject && baseObject.options && baseObject._workerLoad) {
                     baseObject._workerLoad(result);
                 }
                 delete this.queueMap[id];

@@ -105,6 +105,9 @@ function gengerateExtrudePolygons(polygons: PolygonType[] = [], center: any, lay
         const p = (polygon as any);
         const properties = options[i] ? options[i] : (isGeoJSONPolygon(p) ? p['properties'] : p.getProperties() || {});
         if (!center) {
+            if (!properties || !properties.center) {
+                continue;
+            }
             centerPt = layer.coordinateToVector3(properties.center);
         }
         let data;
@@ -172,6 +175,9 @@ function gengerateExtrudeLines(lineStringList: Array<Array<SingleLineStringType>
         const multiLineString = lineStringList[i];
         const properties = options[i] ? options[i] : (isGeoJSONLine(lineStrings[i] as any) ? lineStrings[i]['properties'] : (lineStrings[i] as any).getProperties() || {});
         if (!center) {
+            if (!properties || !properties.center) {
+                continue;
+            }
             centerPt = layer.coordinateToVector3(properties.center);
         }
         let width = properties.width || 1;
@@ -240,6 +246,9 @@ function gengerateLines(lineStringList: Array<Array<SingleLineStringType>>, cent
         const multiLineString = lineStringList[i];
         const properties = options[i] ? options[i] : (isGeoJSONLine(lineStrings[i] as any) ? lineStrings[i]['properties'] : (lineStrings[i] as any).getProperties() || {});
         if (!center) {
+            if (!properties || !properties.center) {
+                continue;
+            }
             centerPt = layer.coordinateToVector3(properties.center);
         }
         let bottomHeight = properties.bottomHeight || 0;
