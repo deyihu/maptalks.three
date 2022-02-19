@@ -48,6 +48,6 @@
   },
   "dependencies": {
     "deyihu-geometry-extrude": "0.1.10",
-    "yymap": "^0.5.30"
+    "yymap": "^0.8.0"
   }
 }
