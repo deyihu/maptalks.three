@@ -19,7 +19,7 @@ A maptalks Layer to render with three.js
 ## Incompatible changes
  * three.js >=128  the default umd package is ES6
  * Starting from version 0.16.0, the default umd package is ES6,To fit the new version of three.js [about three umd package change](https://github.com/mrdoob/three.js/issues/22025)
- * If your running environment does not support ES6, we also provide Es5 version [maptalks.three.es5.js](https://cdn.jsdelivr.net/npm/maptalks.three/dist/maptalks.three.es5.js),This requires the version of three.js < = 127,
+ * If your running environment does not support ES6, we also provide Es5 version [maptalks.three.es5.js](https://unpkg.com/maptalks.three/dist/maptalks.three.es5.js),This requires the version of three.js < = 127,
 
 ## Migration from <=v0.5.x to v0.6.0
 
@@ -84,22 +84,8 @@ IE 11, Chrome, Firefox, other modern and mobile browsers that support WebGL;
 
 ## API Reference
 
-```ThreeLayer``` is a subclass of [maptalks.CanvasLayer](http://maptalks.github.io/maptalks.js/api/0.x/CanvasLayer.html) and inherits all the methods of its parent.
+### [API](https://deyihu.github.io/maptalks.three.doc/build/)  
 
-### [API](./API.md)  
-### [API中文](./API.ZH-CN.md)
-
-### `Constructor`
-
-```javascript
-new maptalks.ThreeLayer(id, options)
-```
-
-* id **String** layer id
-* options **Object** options
-    * glOptions **Object** options when creating webgl context, null by default
-    * doubleBuffer **Boolean** whether the layer canvas is painted with double buffer, true by default
-    * Other options defined in [maptalks.CanvasLayer](http://maptalks.github.io/maptalks.js/api/0.x/CanvasLayer.html)
 
 ## Contributing
 
