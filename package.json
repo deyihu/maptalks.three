@@ -1,9 +1,5 @@
 {
-<<<<<<< HEAD
   "name": "yy.maptalks.three",
-=======
-  "name": "maptalks.three",
->>>>>>> master
   "version": "0.20.2",
   "description": "A maptalks Layer to render with THREE.js.",
   "license": "MIT",
