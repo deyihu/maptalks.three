@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>model animation</title>
+    <script type="text/javascript" src="https://unpkg.com/dat.gui@0.7.6/build/dat.gui.min.js"></script>
+    <link type="text/css" rel="stylesheet" href="https://unpkg.com/maptalks/dist/maptalks.css">
+    <script type="text/javascript" src="https://unpkg.com/maptalks/dist/maptalks.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/@maptalks/gl/dist/maptalksgl.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/@maptalks/vt/dist/maptalks.vt.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/three@0.104.0/build/three.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/maptalks.three@latest/dist/maptalks.three.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/three@0.104.0/examples/js/libs/stats.min.js"></script>
+    <script src='https://cdn.jsdelivr.net/npm/mapbox-gl@2.7.0/dist/mapbox-gl.min.js'></script>
+    <script src='https://maptalks.org/maptalks.mapboxgl/dist/maptalks.mapboxgl.js'></script>
+    <style>
+        html,
+        body {
+            margin: 0px;
+            height: 100%;
+            width: 100%;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            /* background-color: #000; */
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <script>
+        let accesstoken = 'pk.eyJ1IjoicG9sb25nIiwiYSI6ImNrOGZka3JteTAxcGozZ2w1NmoyZmN6M2EifQ.Jv3ngQNWb1Jg1w4zbXquZA';
+        mapboxgl.accessToken = accesstoken;
+        var map = new maptalks.Map("map", {
+            center: [4.849973414262763, 45.747740068148715],
+            zoom: 14,
+            pitch: 70,
+            // bearing: 180,
+
+            centerCross: true,
+            doubleClickZoom: false,
+            zoomControl: true,
+            lights: {
+                // ambient: {
+                //     resource: {
+                //         url: './env.hdr'
+                //     },
+                //     color: [1, 1, 1],
+                //     exposure: 1
+                // },
+                directional: {
+                    color: [1, 1, 1],
+                    lightColorIntensity: 5000,
+                    direction: [1, -0.4, -1]
+                }
+            }
+            // baseLayer: new maptalks.TileLayer('tile', {
+            //     urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+            //     subdomains: ['a', 'b', 'c', 'd'],
+            //     attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+            // })
+        });
+
+        fetch('https://jsapi.maps.arcgis.com/sharing/rest/content/items/ba01a1ccd33e4a938e15d8b3d38fc05d/resources/styles/root.json?f=json').then(res => res.json()).then(json => {
+            json.sources.esri.tiles = ['https://basemaps.arcgis.com/v1/arcgis/rest/services/World_Basemap/VectorTileServer/tile/{z}/{y}/{x}.pbf'];
+            var baseLayer = new maptalks.MapboxglLayer('tile', {
+                glOptions: {
+                    'style': json
+                }
+            }).on('layerload', function () {
+                // start();
+            });
+            map.setBaseLayer(baseLayer);
+        })
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            forceRenderOnMoving: true,
+            forceRenderOnRotating: true
+            // animation: true
+        });
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+            camera.add(new THREE.PointLight('#fff', 0.8));
+            addTransi();
+
+        };
+        const sceneConfig = {
+            environment: {
+                enable: true,                                   // 是否开启环境天空盒绘制
+                mode: 1,                                        // 天空盒模式： 0: 氛围模式， 1: 实景模式
+                level: 0,                                       // 实景模式下的模糊级别，0-3
+                brightness: 1                                   // 天空盒的明亮度，-1 - 1， 默认为0
+            },
+            postProcess: {
+                enable: true,
+                antialias: { enable: true }
+            },
+            ssao: {
+                enable: true,                                 // 是否开启屏幕空间环境光遮蔽
+                bias: 0.03,                                   // 阴影偏移值，越大，阴影就越清晰，0.05 - 1
+                radius: 0.08,                                 // 遮蔽半径，越大，阴影就越清晰， 0.05 - 1
+                intensity: 1.5                                // 强度因子， 0.1 - 5
+            },
+            shadow: {
+                type: 'esm',                                    // 阴影模式，固定为esm
+                enable: true,                                   // 是否开启
+                quality: 'high',                                // 阴影质量，可选的值：high, medium, low
+                opacity: 1,                                     // 阴影的透明度，0 - 1
+                color: [0, 0, 0],                               // 阴影的颜色，归一化三位rgb颜色值
+                blurOffset: 1                                   // 阴影模糊偏移量，值越高阴影越模糊
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [threeLayer], { sceneConfig });
+        groupLayer.addTo(map);
+
+
+        function getColor(code_titan) {
+            const colors = {
+                A: [255, 0, 16],
+                B: [0, 170, 227],
+                C: [248, 150, 29],
+                D: [0, 166, 63],
+                F1: [189, 239, 133],
+                F2: [189, 239, 133]
+            };
+            for (const c in colors) {
+                if (code_titan.includes(c)) {
+                    const color = colors[c];
+                    return `rgb(${color[0]},${color[1]},${color[2]})`;
+                }
+            }
+        }
+
+
+        function addTransi() {
+            fetch('https://services.arcgis.com/V6ZHFr6zdgNZuVG0/arcgis/rest/services/subway_tcl_stations_lines_wgs84/FeatureServer/0/query?where=1%3D1&objectIds=&time=&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&resultType=none&distance=0.0&units=esriSRUnit_Meter&returnGeodetic=false&outFields=*&returnGeometry=true&featureEncoding=esriDefault&multipatchOption=xyFootprint&maxAllowableOffset=&geometryPrecision=&outSR=&datumTransformation=&applyVCSProjection=false&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnExtentOnly=false&returnQueryGeometry=false&returnDistinctValues=false&cacheHint=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&having=&resultOffset=&resultRecordCount=&returnZ=false&returnM=false&returnExceededLimitFeatures=true&quantizationParameters=&sqlFormat=none&f=pgeojson&token=').then(res => res.json()).then(geojson => {
+                const lines = geojson.features.map(f => {
+                    return threeLayer.toExtrudeLine(f, { width: 20, height: 50, altitude: 0 }, new THREE.MeshLambertMaterial({ color: getColor(f.properties.ligne) }));
+                });
+                threeLayer.addMesh(lines);
+                getIcon();
+            });
+        }
+
+        function getIcon() {
+            fetch('https://www.arcgis.com/sharing/rest/content/items/dcbbba0edf094eaa81af19298b9c6247/resources/sprites/sprite.png').then(res => res.blob()).then(blob => createImageBitmap(blob)).then(image => {
+                fetch('https://www.arcgis.com/sharing/rest/content/items/dcbbba0edf094eaa81af19298b9c6247/resources/sprites/sprite.json').then(res => res.json()).then(icons => {
+                    const canvas = document.createElement('canvas');
+                    for (const iconName in icons) {
+                        if (iconName === 'Point of interest/Rail station') {
+                            const { width, height, x, y } = icons[iconName];
+                            canvas.width = width * 2;
+                            canvas.height = height * 2;
+                            const ctx = canvas.getContext('2d');
+                            ctx.scale(2, 2);
+                            ctx.drawImage(image, x, y, width, height, 0, 0, width, height);
+                            icons[iconName].url = canvas.toDataURL();
+                            console.log(icons[iconName].url);
+                            addStation(icons[iconName]);
+                        }
+                    }
+                })
+            })
+        }
+
+        function addStation(icon) {
+
+            function getOffset() {
+                return [
+                    [13, 0],
+                    [15, -30],
+                    [16, -50],
+                    [17, -100],
+                    [18, -150],
+                ]
+            }
+
+            fetch('https://services.arcgis.com/V6ZHFr6zdgNZuVG0/arcgis/rest/services/subway_tcl_stations_center_wgs84/FeatureServer/0/query?where=1%3D1&objectIds=&time=&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&resultType=none&distance=0.0&units=esriSRUnit_Meter&returnGeodetic=false&outFields=*&returnGeometry=true&featureEncoding=esriDefault&multipatchOption=xyFootprint&maxAllowableOffset=&geometryPrecision=&outSR=&datumTransformation=&applyVCSProjection=false&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnExtentOnly=false&returnQueryGeometry=false&returnDistinctValues=false&cacheHint=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&having=&resultOffset=&resultRecordCount=&returnZ=false&returnM=false&returnExceededLimitFeatures=true&quantizationParameters=&sqlFormat=none&f=pgeojson&token=').then(res => res.json()).then(geojson => {
+                const points = maptalks.GeoJSON.toGeometry(geojson, (point) => {
+                    point.setSymbol({
+                        markerFile: icon.url,
+                        markerWidth: icon.width,
+                        markerHeight: icon.height,
+                        // markerDy: {
+                        //     stops: getOffset(),
+                        // },
+                        textFaceName: 'Microsoft YaHei,sans-serif',
+                        textName: point.getProperties().nom,
+                        textDy: -25,
+                        textSize: 13,
+                        textFill: "#000",
+                        textHaloFill: "#fff",
+                        textHaloRadius: 1.4
+                    })
+                });
+                const layer = new maptalks.PointLayer('test', {
+                    collision: true
+                }).addTo(groupLayer);
+                layer.addGeometry(points);
+            })
+
+        }
+
+    </script>
+</body>
+
+</html>
