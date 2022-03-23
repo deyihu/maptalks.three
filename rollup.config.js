@@ -36,7 +36,7 @@ function removeGlobal() {
 const basePlugins = [
     json(),
     typescript({
-
+        sourceMap: true
     }),
     //handle node_modules
     resolve({
@@ -102,7 +102,7 @@ module.exports = [
         plugins: basePlugins.concat([terser()]),
         external: ['yymap', 'three'],
         output: {
-            'sourcemap': false,
+            'sourcemap': true,
             'format': 'umd',
             'name': 'YY',
             'banner': banner,
