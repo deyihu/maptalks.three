@@ -38,6 +38,7 @@ import LineGeometry from './util/fatline/LineGeometry';
 import Line2 from './util/fatline/Line2';
 import maptalks from './MTK';
 import { BaseObjectTaskManager } from './BaseObjectTaskManager';
+import { fetchDataWorkerKey, fetchDataWorkerCode, getFetchDataActor } from './worker/fetchdataworker';
 
 
 const options: BaseLayerOptionType = {
@@ -1327,9 +1328,11 @@ export {
     MergedMixin,
     GeoJSONUtil, MergeGeometryUtil, GeoUtil, ExtrudeUtil, LineUtil,
     IdentifyUtil,
-    maptalks
+    maptalks,
+    getFetchDataActor
 };
 
 if (maptalks.registerWorkerAdapter) {
     maptalks.registerWorkerAdapter(getWorkerName(), getWorkerCode());
+    maptalks.registerWorkerAdapter(fetchDataWorkerKey, fetchDataWorkerCode);
 }

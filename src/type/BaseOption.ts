@@ -30,7 +30,9 @@ export type BaseObjectOptionType = {
     polygon?: any,
     index?: number,
     id?: string,
-    center?: Array<number>
+    center?: Array<number>,
+    height?: number,
+    heightEnable?: boolean
 };
 
 export type BarOptionType = BaseObjectOptionType & {
