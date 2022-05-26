@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>altitude/height test</title>
+    <link type="text/css" rel="stylesheet" href="https://unpkg.com/maptalks/dist/maptalks.css">
+    <script type="text/javascript" src="https://unpkg.com/maptalks/dist/maptalks.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/three@0.138.0/build/three.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/maptalks.three@latest/dist/maptalks.three.js"></script>
+    <style>
+        html,
+        body {
+            margin: 0px;
+            height: 100%;
+            width: 100%;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+        }
+
+        .marker-test {
+            width: 50px;
+            height: 50px;
+            background-color: black;
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <script>
+
+        var map = new maptalks.Map("map", {
+            center: [120.60692797797321, 31.331840391480995],
+            zoom: 17,
+            pitch: 60,
+            // bearing: 180,
+
+            centerCross: true,
+            doubleClickZoom: false,
+            heightFactor: 1.5,
+            baseLayer: new maptalks.TileLayer('tile', {
+                urlTemplate: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+                subdomains: ['a', 'b', 'c', 'd'],
+                attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+            })
+        });
+
+        const coordinates = [
+            [116.3804667173954, 39.948207932629856]
+            , [116.38160923414205, 39.948218091534414]
+            , [116.38260055276953, 39.94822186657191]
+            , [116.3837344707888, 39.94824368150549]
+        ], height = 50;
+        map.setCenter(coordinates[0]);
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            forceRenderOnMoving: true,
+            forceRenderOnRotating: true
+            // animation: true
+        });
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+            addBars(scene);
+        };
+        threeLayer.addTo(map);
+
+
+        var material = new THREE.MeshLambertMaterial({ color: '#fff', transparent: true });
+        function addBars(scene) {
+            const bar = threeLayer.toBar(coordinates[0], {
+                height: height,
+                radius: 2,
+                topColor: '#fff'
+            }, material);
+            threeLayer.addMesh(bar);
+            const bar1 = threeLayer.toBar(coordinates[3], {
+                height: height,
+                radius: 2,
+                topColor: '#fff',
+                altitude: height
+            }, material);
+            threeLayer.addMesh(bar1);
+        }
+
+
+        const layer = new maptalks.VectorLayer('vector', {
+            'forceRenderOnMoving': true,
+            'forceRenderOnZooming': true,
+            'forceRenderOnRotating': true,
+            enableAltitude: true
+        }).addTo(map);
+
+        const marker = new maptalks.Marker(coordinates[1], {
+            properties: {
+                altitude: height
+            }
+        }).addTo(layer);
+
+        const line = new maptalks.LineString(coordinates, {
+            properties: {
+                altitude: height
+            }
+        });
+        line.addTo(layer);
+
+        const uimarker = new maptalks.ui.UIMarker(coordinates[2], {
+            content: '<div class="marker-test">hello</div>',
+            altitude: height,
+            dy: -25
+        }).addTo(map);
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>

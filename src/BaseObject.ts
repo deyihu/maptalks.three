@@ -208,7 +208,7 @@ class BaseObject extends maptalks.Eventable(Base) {
      */
     setAltitude(altitude: number) {
         if (maptalks.Util.isNumber(altitude)) {
-            const z = this.getLayer().distanceToVector3(altitude, altitude).x;
+            const z = this.getLayer().altitudeToVector3(altitude, altitude).x;
             this.getObject3d().position.z = z;
             this.options.altitude = altitude;
             if (this.pickObject3d) {
@@ -257,7 +257,9 @@ class BaseObject extends maptalks.Eventable(Base) {
                 max = Math.max(z, max);
             }
             const middle = (min + max) / 2;
-            const z = layer.distanceToVector3(height, height).x;
+            let z = layer.altitudeToVector3(height, height).x;
+            // z>0
+            z = Math.max(z, 0.000001);
             for (let i = 0, len = array.length; i < len; i += 3) {
                 if (array[i + 2] > middle) {
                     (array[i + 2] as any) = z;
