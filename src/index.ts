@@ -31,13 +31,14 @@ import * as ExtrudeUtil from './util/ExtrudeUtil';
 import * as LineUtil from './util/LineUtil';
 import * as IdentifyUtil from './util/IdentifyUtil';
 import * as geometryExtrude from 'deyihu-geometry-extrude';
+import * as polyextrude from 'poly-extrude';
 import LineMaterial from './util/fatline/LineMaterial';
 import { BarOptionType, BaseLayerOptionType, BaseObjectOptionType, ExtrudeLineOptionType, ExtrudeLineTrailOptionType, ExtrudePolygonOptionType, FatLineMaterialType, getBaseObjectMaterialType, HeatMapDataType, HeatMapOptionType, LineMaterialType, LineOptionType, LineStringType, PointOptionType, PolygonType, SingleLineStringType, TerrainOptionType } from './type/index';
 import { getWorkerCode, getWorkerName } from './worker/getworker';
 import LineGeometry from './util/fatline/LineGeometry';
 import Line2 from './util/fatline/Line2';
 import maptalks from './MTK';
-import { BaseObjectTaskManager } from './BaseObjectTaskManager';
+import { BaseObjectTaskManager, BaseObjectTask } from './BaseObjectTaskManager';
 import { fetchDataWorkerKey, fetchDataWorkerCode, getFetchDataActor } from './worker/fetchdataworker';
 
 
@@ -878,10 +879,14 @@ class ThreeLayer extends maptalks.CanvasLayer {
         if (intersects && Array.isArray(intersects) && intersects.length) {
             baseObjects = intersects.map(intersect => {
                 let object: any = intersect.object;
+                const instanceId = intersect.instanceId;
                 object = this._recursionMesh(object) || {};
                 const baseObject = object['__parent'] || object;
                 baseObject.faceIndex = intersect.faceIndex;
                 baseObject.index = intersect.index;
+                if (maptalks.Util.isNumber(instanceId)) {
+                    baseObject.instanceId = instanceId;
+                }
                 return baseObject;
             });
         }
@@ -1346,7 +1351,10 @@ export {
     GeoJSONUtil, MergeGeometryUtil, GeoUtil, ExtrudeUtil, LineUtil,
     IdentifyUtil,
     maptalks,
-    getFetchDataActor
+    getFetchDataActor,
+    BaseObjectTaskManager,
+    BaseObjectTask,
+    polyextrude
 };
 
 if (maptalks.registerWorkerAdapter) {

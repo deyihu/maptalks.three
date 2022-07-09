@@ -2,18 +2,12 @@
 <html>
 
 <head>
-    <title>terrain test</title>
+    <title>osm buildings demo</title>
     <script type="text/javascript" src="https://unpkg.com/dat.gui@0.7.6/build/dat.gui.min.js"></script>
     <link type="text/css" rel="stylesheet" href="https://unpkg.com/maptalks/dist/maptalks.css">
     <script type="text/javascript" src="https://unpkg.com/maptalks/dist/maptalks.js"></script>
-    <script type="text/javascript" src="https://unpkg.com/@maptalks/gl/dist/maptalksgl.js"></script>
-    <script type="text/javascript" src="./accesstoken.js"></script>
     <script type="text/javascript" src="https://unpkg.com/three@0.138.0/build/three.min.js"></script>
-    <!-- <script type="text/javascript" src="https://unpkg.com/lz-string@1.4.4/libs/lz-string.min.js"></script> -->
     <script type="text/javascript" src="https://unpkg.com/maptalks.three@latest/dist/maptalks.three.js"></script>
-       <!-- <script type="text/javascript" src="./https://unpkg.com/maptalks.three@latest/dist/maptalks.three.js"></script> -->
-    <script type="text/javascript"
-        src="https://unpkg.com/three@0.109.0/examples/js/libs/stats.min.js"></script>
     <style>
         html,
         body {
@@ -34,25 +28,20 @@
     <div id="map"></div>
     <script>
 
-        var baseLayer = new maptalks.TileLayer('tile', {
-            // urlTemplate: 'https://mt2.google.cn/maps/vt?lyrs=s&hl=zh-CN&gl=CN&x={x}&y={y}&z={z}',
-            urlTemplate: 'https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}.png?access_token='+accesstoken,
-            subdomains: ['a', 'b', 'c', 'd'],
-            debug: true,
-            debugOutline: 'red'
-            // attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
-        });
-
-
         var map = new maptalks.Map("map", {
-            "center": [120.41947212380751, 31.24961113775865], "zoom": 15, "pitch": 58.40000000000002, "bearing": -0.6000000000000227,
-            // bearing: 180,
+            center: [13.414049129456203, 52.53160987202452],
+            zoom: 22,
+            pitch: 70,
+            bearing: 180,
 
             centerCross: true,
             doubleClickZoom: false,
-            baseLayer: baseLayer
+            // baseLayer: new maptalks.TileLayer('tile', {
+            //     urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+            //     subdomains: ['a', 'b', 'c', 'd'],
+            //     attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+            // })
         });
-
         // the ThreeLayer to draw buildings
         var threeLayer = new maptalks.ThreeLayer('t', {
             forceRenderOnMoving: true,
@@ -60,33 +49,31 @@
             // animation: true
         });
 
+        var meshs = [];
+
+        var material = new THREE.MeshPhongMaterial({ color: '#fff' });
 
         threeLayer.prepareToDraw = function (gl, scene, camera) {
-            stats = new Stats();
-            stats.domElement.style.zIndex = 100;
-            document.getElementById('map').appendChild(stats.domElement);
-
             var light = new THREE.DirectionalLight(0xffffff);
             light.position.set(0, -10, 10).normalize();
             scene.add(light);
 
-            const extent = new maptalks.Extent(120.41015625, 31.25037814985572, 120.421142578125, 31.259769987394264);
-            const material = new THREE.MeshBasicMaterial();
-            const terrain = threeLayer.toTerrain(extent, {
-                texture: './data/streets-satellite.png',
-                image: './data/terrain-rgb.png'
-            }, material);
-            threeLayer.addMesh(terrain);
+            const ambientLight = new THREE.AmbientLight('#FFF', 0.5);
+            scene.add(ambientLight);
+            fetch('./data/building.geojson').then(res => res.json()).then(geojson => {
+                const polygons = maptalks.GeoJSON.toGeometry(geojson);
+                map.setCenter(polygons[0].getCenter());
+                polygons.forEach(polygon => {
+                    const mesh = threeLayer.toExtrudePolygons(polygon, { interactive: false, height: 40, topColor: '#fff' }, material);
+                    meshs.push(mesh);
+                });
+                threeLayer.addMesh(meshs);
+                initGui();
+            })
             animation();
-        }
-        const sceneConfig = {
-            postProcess: {
-                enable: true,
-                antialias: { enable: true }
-            }
         };
-        const groupLayer = new maptalks.GroupGLLayer('group', [threeLayer], { sceneConfig });
-        groupLayer.addTo(map);
+        threeLayer.addTo(map);
+
 
         function animation() {
             // layer animation support Skipping frames
@@ -94,16 +81,13 @@
             if (threeLayer._needsUpdate) {
                 threeLayer.redraw();
             }
-            stats.update();
             requestAnimationFrame(animation);
-
         }
-
 
         function initGui() {
             var params = {
                 add: true,
-                color: 0x00ffff,
+                color: material.color.getStyle(),
                 show: true,
                 opacity: 1,
                 altitude: 0
@@ -111,25 +95,25 @@
             var gui = new dat.GUI();
             gui.add(params, 'add').onChange(function () {
                 if (params.add) {
-                    threeLayer.addMesh(lines);
+                    threeLayer.addMesh(meshs);
                 } else {
-                    threeLayer.removeMesh(lines);
+                    threeLayer.removeMesh(meshs);
                 }
             });
-            gui.addColor(params, 'color').name('line color').onChange(function () {
+            gui.addColor(params, 'color').name('building color').onChange(function () {
                 material.color.set(params.color);
-                lines.forEach(function (mesh) {
+                meshs.forEach(function (mesh) {
                     mesh.setSymbol(material);
                 });
             });
             gui.add(params, 'opacity', 0, 1).onChange(function () {
                 material.opacity = params.opacity;
-                lines.forEach(function (mesh) {
+                meshs.forEach(function (mesh) {
                     mesh.setSymbol(material);
                 });
             });
             gui.add(params, 'show').onChange(function () {
-                lines.forEach(function (mesh) {
+                meshs.forEach(function (mesh) {
                     if (params.show) {
                         mesh.show();
                     } else {
@@ -138,11 +122,12 @@
                 });
             });
             gui.add(params, 'altitude', 0, 300).onChange(function () {
-                lines.forEach(function (mesh) {
+                meshs.forEach(function (mesh) {
                     mesh.setAltitude(params.altitude);
                 });
             });
         }
+
 
 
     </script>

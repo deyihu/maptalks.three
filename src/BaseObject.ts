@@ -548,6 +548,12 @@ class BaseObject extends maptalks.Eventable(Base) {
         return this;
     }
 
+    _createInstancedMesh(geometry: THREE.BufferGeometry, material: THREE.Material, count: number) {
+        this.object3d = new THREE.InstancedMesh(geometry, material, count);
+        this.object3d['__parent'] = this;
+        return this;
+    }
+
     _createGroup() {
         this.object3d = new THREE.Group();
         this.object3d['__parent'] = this;
@@ -586,6 +592,7 @@ class BaseObject extends maptalks.Eventable(Base) {
         this.object3d['__parent'] = this;
         return this;
     }
+
 
     /**
      * rewrite three.js computeLineDistances ,1.7 speed
