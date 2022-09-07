@@ -1478,7 +1478,7 @@ function recursionObject3dLayer(object3d, layer) {
         }
     }
 }
-function getGLRes(map: maptalks.Map) {
+function getGLRes(map) {
     return map.getGLRes ? map.getGLRes() : map.getGLZoom();
 }
 
