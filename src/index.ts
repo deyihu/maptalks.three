@@ -182,7 +182,7 @@ class ThreeLayer extends maptalks.CanvasLayer {
      * @param {Number} [z=0] z value
      * @return {THREE.Vector3}
      */
-    coordinateToVector3(coordinate: any | Array<number>, z: number = 0): THREE.Vector3 {
+    coordinateToVector3(coordinate: Array<number>, z: number = 0, out?: THREE.Vector3): THREE.Vector3 {
         const map = this.getMap();
         if (!map) {
             return null;
@@ -196,6 +196,11 @@ class ThreeLayer extends maptalks.CanvasLayer {
         }
         const res = getGLRes(map);
         const p = coordinateToPoint(map, isArray ? TEMP_COORD : coordinate, res, TEMP_POINT);
+        if (out) {
+            out.x = p.x;
+            out.y = p.y;
+            out.z = z;
+        }
         return new THREE.Vector3(p.x, p.y, z);
     }
 
@@ -1317,13 +1322,17 @@ class ThreeRenderer extends maptalks.renderer.CanvasLayerRenderer {
         // const r = maptalks.Browser.retina ? 2 : 1;
         const r = map.getDevicePixelRatio ? map.getDevicePixelRatio() : (maptalks.Browser.retina ? 2 : 1);
         const canvas = this.canvas;
-        //retina support
-        canvas.height = r * size['height'];
-        canvas.width = r * size['width'];
-        if (this.layer._canvas && canvas.style) {
-            canvas.style.width = size.width + 'px';
-            canvas.style.height = size.height + 'px';
+        const { width, height, cssWidth, cssHeight } = maptalks.Util.calCanvasSize(size, r);
+        if (this.layer._canvas && (canvas.style.width !== cssWidth || canvas.style.height !== cssHeight)) {
+            canvas.style.width = cssWidth;
+            canvas.style.height = cssHeight;
         }
+        if (canvas.width === width && canvas.height === height) {
+            return this;
+        }
+        //retina support
+        canvas.height = width;
+        canvas.width = height;
         this.context.setSize(canvas.width, canvas.height);
     }
 
