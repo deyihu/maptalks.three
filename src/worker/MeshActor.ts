@@ -320,4 +320,3 @@ function generateBars(data) {
         datas: buffer, transfer: [buffer]
     };
 }
-
