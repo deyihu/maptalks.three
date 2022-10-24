@@ -14,6 +14,8 @@
     <!-- <script type="text/javascript" src="./https://unpkg.com/maptalks.three@latest/dist/maptalks.three.js"></script> -->
     <script type="text/javascript" src="https://unpkg.com/three@0.109.0/examples/js/libs/stats.min.js"></script>
     <script type="text/javascript" src="./js/tilebelt.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/turf@7.0.0-alpha.1/dist/turf.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/echarts@5.4.0/dist/echarts.min.js"></script>
     <style>
         html,
         body {
@@ -25,19 +27,90 @@
         #map {
             width: 100%;
             height: 100%;
-            background-color: #000;
+            /* background-color: #000; */
+        }
+
+        .charts {
+            position: absolute;
+            z-index: 1;
+            right: 10px;
+            bottom: 130px;
+            width: 600px;
+            height: 300px;
+            background-color: black;
+
         }
     </style>
 </head>
 
 <body>
+    <div class="charts" id="charts"></div>
     <div id="map"></div>
     <script>
+        const chart = echarts.init(document.querySelector('#charts'));
+
+        function updateChart(result) {
+            const option = {
+                tooltip: {
+                    trigger: 'item',
+                    // formatter: function (params) {
+                    //     console.log(params);
+                    // }
+                    // show: true,
+                    // formatter: '{b0}: {c0}<br />{b1}: {c1}'
+                },
+                xAxis: {
+                    type: 'category',
+                    data: result.map(d => {
+                        return d.tube.getOptions().lineString.getProperties().name
+                    }),
+                    splitLine: {
+                        show: true
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '海拔',
+                    splitLine: {
+                        show: false
+                    }
+                },
+                series: [
+                    {
+                        name: 'tube',
+                        symbolSize: 40,
+                        lineStyle: {
+                            width: 0
+                        },
+                        tooltip: {
+                            trigger: 'item',
+                            formatter: function (params) {
+                                const data = params.data;
+                                return `${data.name}<br>半径:${data.radius} 米<br>海拔:${data.altitude}米`
+                            }
+                            // show: true,
+                            // formatter: '{b0}: {c0}<br />{b1}: {c1}'
+                        },
+                        data: result.map(d => {
+                            return {
+                                value: d.altitude,
+                                altitude: d.altitude,
+                                radius: d.tube.getOptions().radius,
+                                name: d.tube.getOptions().lineString.getProperties().name
+                            }
+                        }),
+                        type: 'line'
+                    }
+                ]
+            };
+
+            chart.setOption(option);
+        }
 
 
         var baseLayer = new maptalks.TileLayer('tile', {
             // urlTemplate: 'https://mt2.google.cn/maps/vt?lyrs=s&hl=zh-CN&gl=CN&x={x}&y={y}&z={z}',
-            urlTemplate: 'https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}.png?access_token=' + accesstoken,
+            urlTemplate: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
             subdomains: ['a', 'b', 'c', 'd'],
             debug: true,
             debugOutline: 'red'
@@ -56,25 +129,43 @@
             zoomControl: true,
             // heightFactor: 2.4
         });
-        baseLayer.hide();
+        // baseLayer.hide();
 
         const textureLoader = new THREE.TextureLoader();
         const terrains = [];
         const bboxs = [];
         let clipBuffer = 100;
-        let tubes, tubeColor = '#fcfcfc';
+        let tubes, tubeColor = '#fff';
+        let clip = false;
         let clipPlanes = [];
         let clipPlane;
-        const tubeRadius = 100, tubeAltitude = 500;
+        const tubeRadius = 100, tubeAltitude = 600;
+
+        var params = {
+            clip: false,
+            clipBuffer,
+            clipPlane: false,
+            clipPlaneColor: '#fff',
+            baseLayer: baseLayer.isVisible(),
+            terrains: true,
+            tubes: true,
+            tubeColor,
+            // add: true,
+            // color: 0x00ffff,
+            // show: true,
+            // opacity: 1,
+            altitude: 0
+        };
 
         // the ThreeLayer to draw buildings
         var threeLayer = new maptalks.ThreeLayer('t', {
             forceRenderOnMoving: true,
-            forceRenderOnRotating: true
+            forceRenderOnRotating: true,
+            identifyCountOnEvent: 1
             // animation: true
         });
 
-
+        var stats;
         threeLayer.prepareToDraw = function (gl, scene, camera) {
             threeLayer.getThreeRenderer().localClippingEnabled = true;
             stats = new Stats();
@@ -88,6 +179,7 @@
             animation();
             initGui();
         }
+
 
         function addTerrain() {
             const TILESIZE = 256;
@@ -134,45 +226,50 @@
                 maxx = Math.max(maxx, bbox[2], bbox[0]);
                 maxy = Math.max(maxy, bbox[3], bbox[1]);
             });
-            // const coordinates = [
-            //     [
-            //         [minx, miny],
-            //         [minx, maxy],
-            //         [maxx, maxy],
-            //         [maxx, miny]
-            //     ]
-            // ];
-            // const polygon = new maptalks.Polygon(coordinates);
-            // const layer = new maptalks.VectorLayer('layer').addTo(map);
-            // polygon.addTo(layer);
-
-            // const geojson = {
-            //     type: 'FeatureCollection',
-            //     features: [polygon.toGeoJSON()]
-            // };
-            // console.log(JSON.stringify(geojson));
             return [minx, miny, maxx, maxy];
         }
 
         function addTube() {
+            const material = new THREE.MeshLambertMaterial({ side: 2, color: tubeColor });
+            var highlightmaterial = new THREE.MeshLambertMaterial({ side: 2, color: 'red', wireframe: true, transparent: true });
             fetch('./data/tubedata.geojson').then(res => res.json()).then(geojson => {
                 const lines = maptalks.GeoJSON.toGeometry(geojson);
                 tubes = lines.map(line => {
                     const coordinates = line.getCoordinates().forEach(c => {
-                        c.z = tubeAltitude;
+                        c.z = 400 + Math.round(200 * (Math.random()));
                     })
-                    const tube = new Tube(line, { radius: tubeRadius, radialSegments: 50 }, new THREE.MeshLambertMaterial({ side: 2, color: tubeColor }), threeLayer);
+                    const tube = new Tube(line, { radius: tubeRadius, radialSegments: 50 }, material, threeLayer);
+                    tube.setToolTip(line.getProperties().name, {
+                        showTimeout: 0,
+                        eventsPropagation: true,
+                        dx: 10
+                    });
+                    //event test
+                    ['mouseout', 'mouseover'].forEach(function (eventType) {
+                        tube.on(eventType, function (e) {
+                            // console.log(e.type, e);
+                            // console.log(this);
+                            if (e.type === 'mouseout') {
+                                this.setSymbol(material);
+                            }
+                            if (e.type === 'mouseover') {
+                                highlightmaterial.clippingPlanes = params.clip ? clipPlanes : [];
+                                this.setSymbol(highlightmaterial);
+                            }
+                        });
+                    });
                     return tube;
                 });
                 threeLayer.addMesh(tubes);
-                createClipPanels(clipBuffer);
+                createClipPlanes();
             })
         }
 
 
-        function createClipPanels(clipBuffer) {
+        function createClipPlanes() {
             const bbox = calBBox(bboxs);
             const [minx, miny, maxx, maxy] = bbox;
+            const clipBuffer = params.clipBuffer;
             const vymin = threeLayer.coordinateToVector3([(minx + maxx) / 2, miny]);
             const buffer = threeLayer.distanceToVector3(clipBuffer, clipBuffer).x;
 
@@ -199,7 +296,7 @@
                 const v1 = threeLayer.coordinateToVector3([minx, miny]), v2 = threeLayer.coordinateToVector3([maxx, miny]);
                 const w = Math.abs(v1.x - v2.x);
                 const h = 30;
-                const geometry = new THREE.PlaneGeometry(w, h, 20, 20);
+                const geometry = new THREE.PlaneGeometry(w, h, 20, 10);
                 geometry.rotateX(Math.PI / 2);
                 const material = new THREE.MeshBasicMaterial({ wireframe: true });
                 clipPlane = new THREE.Mesh(geometry, material);
@@ -211,21 +308,120 @@
                 clipPlane.visible = false;
             }
             updateClipPlanePosition();
+            calCrossPoints();
+
 
         }
 
-        function clipTubes(clip) {
+        function clipTubes() {
+            const clip = params.clip;
             if (clip) {
                 threeLayer.addMesh(clipPlane);
             } else {
                 threeLayer.removeMesh(clipPlane)
             }
+            const result = calCrossPoints();
+            updateChart(result);
             tubes.concat(terrains).forEach(tube => {
                 tube.getObject3d().material.clippingPlanes = clip ? clipPlanes : [];
                 tube.getObject3d().material.clipIntersection = true;
                 tube.getObject3d().material.needsUpdate = true;
 
             });
+        }
+
+        function calCrossPoints() {
+            if (!params.clip) {
+                return [];
+            }
+            const clipBuffer = params.clipBuffer;
+            const bbox = calBBox(bboxs);
+            const point = turf.point(bbox.slice(0, 2));
+            const distance = clipBuffer / 1000;
+            const bearing = 0;
+
+            const destination = turf.destination(point, distance, bearing);
+            const lat = destination.geometry.coordinates[1];
+
+            const coordinates = [[bbox[0], lat], [bbox[2], lat]];
+            const clipLine = turf.lineString(coordinates);
+            const result = [];
+            layer.clear();
+            tubes.forEach(tube => {
+                const lineString = tube.getOptions().lineString;
+                const coordinates = lineString.getCoordinates().map(c => {
+                    return c.toArray();
+                });
+                const line = turf.lineString(coordinates);
+                const intersects = turf.lineIntersect(clipLine, line);
+                const intersectPoint = intersects.features[0];
+                if (intersectPoint) {
+                    // const markers = maptalks.GeoJSON.toGeometry(intersects);
+                    // layer.addGeometry(markers);
+                    // layer.addGeometry(lineString);
+                    const altitude = calCrossAltitude(intersects.features[0], coordinates);
+                    result.push({
+                        coordinates: intersectPoint.geometry.coordinates,
+                        altitude,
+                        tube
+                    });
+                }
+            });
+            return result;
+        }
+
+        function calCrossAltitude(intersectPoint, lineCoordinates) {
+            let altitude = 0;
+            if (!intersectPoint) {
+                return altitude;
+            }
+            const [x, y] = intersectPoint.geometry.coordinates;
+            const point = new maptalks.Coordinate(x, y);
+            const POINT1 = new maptalks.Coordinate(0, 0), POINT2 = new maptalks.Coordinate(0, 0);
+            for (let i = 0, len = lineCoordinates.length - 1; i < len; i++) {
+                const [x1, y1, z1] = lineCoordinates[i], [x2, y2, z2] = lineCoordinates[i + 1];
+                POINT1.x = x1;
+                POINT1.y = y1;
+                POINT2.x = x2;
+                POINT2.y = y2;
+                if (pointOnLine(point, POINT1, POINT2)) {
+                    const dx = x2 - x1, dy = y2 - y1;
+                    const [x, y] = intersectPoint.geometry.coordinates;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const offsetDx = x - x1, offsetDy = y - y1;
+                    const offsetDistance = Math.sqrt(offsetDx * offsetDx + offsetDy * offsetDy);
+                    const dHeight = z2 - z1;
+                    altitude = z1 + dHeight * (offsetDistance / distance);
+                    break;
+                }
+            }
+            return altitude;
+        }
+
+
+        // 确定点是否在线段上
+        function pointOnLine(point, startPoint, endPoint) {
+            const x = point.x;
+            const y = point.y;
+            const x1 = startPoint.x;
+            const y1 = startPoint.y;
+            const x2 = endPoint.x;
+            const y2 = endPoint.y;
+            const dxc = x - x1;
+            const dyc = y - y1;
+            const dxl = x2 - x1;
+            const dyl = y2 - y1;
+            const cross = dxc * dyl - dyc * dxl;
+            if (Math.abs(cross) > 0.1) {
+                return;
+            }
+            if (Math.abs(dxl) >= Math.abs(dyl)) {
+                if (dxl > 0 ? x1 < x && x < x2 : x2 < x && x < x1) {
+                    return true;
+                }
+            } else if (dyl > 0 ? y1 < y && y < y2 : y2 < y && y < y1) {
+                return true;
+            }
         }
 
         const sceneConfig = {
@@ -236,6 +432,8 @@
         };
         const groupLayer = new maptalks.GroupGLLayer('group', [threeLayer], { sceneConfig });
         groupLayer.addTo(map);
+
+        const layer = new maptalks.VectorLayer('layer').addTo(map);
 
         function animation() {
             // layer animation support Skipping frames
@@ -250,21 +448,6 @@
 
 
         function initGui() {
-            var params = {
-                clip: false,
-                clipBuffer: clipBuffer,
-                clipPlane: false,
-                clipPlaneColor: '#fff',
-                baseLayer: baseLayer.isVisible(),
-                terrains: true,
-                tubes: true,
-                tubeColor: tubeColor,
-                // add: true,
-                // color: 0x00ffff,
-                // show: true,
-                // opacity: 1,
-                altitude: 0
-            };
             var gui = new dat.GUI();
             gui.add(params, 'baseLayer').onChange(function () {
                 baseLayer[params.baseLayer ? 'show' : 'hide']();
@@ -272,8 +455,8 @@
             gui.add(params, 'clip').onChange(function () {
                 clipTubes(params.clip);
             });
-            gui.add(params, 'clipBuffer', 0, 2000).onChange(function () {
-                createClipPanels(params.clipBuffer);
+            gui.add(params, 'clipBuffer', 0, 2000).name('clipBuffer(Meter)').onChange(function () {
+                createClipPlanes(params.clipBuffer);
                 clipTubes(params.clip);
             });
             gui.add(params, 'clipPlane').onChange(function () {
