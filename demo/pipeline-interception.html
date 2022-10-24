@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>terrain test</title>
+    <script type="text/javascript" src="https://unpkg.com/dat.gui@0.7.6/build/dat.gui.min.js"></script>
+    <link type="text/css" rel="stylesheet" href="https://unpkg.com/maptalks/dist/maptalks.css">
+    <script type="text/javascript" src="https://unpkg.com/maptalks/dist/maptalks.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/@maptalks/gl/dist/maptalksgl.js"></script>
+    <script type="text/javascript" src="./js/accesstoken.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/three@0.138.0/build/three.min.js"></script>
+    <!-- <script type="text/javascript" src="https://unpkg.com/lz-string@1.4.4/libs/lz-string.min.js"></script> -->
+    <script type="text/javascript" src="https://unpkg.com/maptalks.three@latest/dist/maptalks.three.js"></script>
+    <!-- <script type="text/javascript" src="./https://unpkg.com/maptalks.three@latest/dist/maptalks.three.js"></script> -->
+    <script type="text/javascript" src="https://unpkg.com/three@0.109.0/examples/js/libs/stats.min.js"></script>
+    <script type="text/javascript" src="./js/tilebelt.js"></script>
+    <style>
+        html,
+        body {
+            margin: 0px;
+            height: 100%;
+            width: 100%;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <script>
+
+
+        var baseLayer = new maptalks.TileLayer('tile', {
+            // urlTemplate: 'https://mt2.google.cn/maps/vt?lyrs=s&hl=zh-CN&gl=CN&x={x}&y={y}&z={z}',
+            urlTemplate: 'https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}.png?access_token=' + accesstoken,
+            subdomains: ['a', 'b', 'c', 'd'],
+            debug: true,
+            debugOutline: 'red'
+            // attribution: '&copy; <a href="http://osm.org">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/">CARTO</a>'
+        });
+
+
+        var map = new maptalks.Map("map", {
+            "center": [106.2020618728119, 38.904062897947455], "zoom": 14, "pitch": 58.40000000000002, "bearing": 0,
+            // center: [0, 0],
+            // bearing: 180,
+
+            centerCross: true,
+            doubleClickZoom: false,
+            baseLayer: baseLayer,
+            zoomControl: true,
+            // heightFactor: 2.4
+        });
+        baseLayer.hide();
+
+        const textureLoader = new THREE.TextureLoader();
+        const terrains = [];
+        const bboxs = [];
+        let clipBuffer = 100;
+        let tubes, tubeColor = '#fcfcfc';
+        let clipPlanes = [];
+        let clipPlane;
+        const tubeRadius = 100, tubeAltitude = 500;
+
+        // the ThreeLayer to draw buildings
+        var threeLayer = new maptalks.ThreeLayer('t', {
+            forceRenderOnMoving: true,
+            forceRenderOnRotating: true
+            // animation: true
+        });
+
+
+        threeLayer.prepareToDraw = function (gl, scene, camera) {
+            threeLayer.getThreeRenderer().localClippingEnabled = true;
+            stats = new Stats();
+            stats.domElement.style.zIndex = 100;
+            document.getElementById('map').appendChild(stats.domElement);
+
+            var light = new THREE.DirectionalLight(0xffffff);
+            light.position.set(0, -10, 10).normalize();
+            scene.add(light);
+            addTerrain();
+            animation();
+            initGui();
+        }
+
+        function addTerrain() {
+            const TILESIZE = 256;
+            const minx = 26046, maxx = 26053, miny = 12532, maxy = 12537;
+            const tiles = [];
+            for (let x = minx; x <= maxx; x++) {
+                for (let y = miny; y <= maxy; y++) {
+                    tiles.push([x, y, 15]);
+                }
+            }
+            tiles.forEach(tile => {
+                const [x, y, z] = tile;
+                if (x >= 26050 && x <= 26051 && y >= 12534 && y <= 12535) {
+                    return;
+                }
+                const bbox = tilebelt.tileToBBOX(tile);
+                const texture = `https://api.mapbox.com/v4/mapbox.satellite/${z}/${x}/${y}.png?access_token=${accesstoken}`;
+                const image = `https://a.tiles.mapbox.com/v4/mapbox.terrain-rgb/${z}/${x}/${y}.pngraw?access_token=${accesstoken}`;
+                const terrain = threeLayer.toTerrain(bbox, { texture, imageWidth: TILESIZE, imageHeight: TILESIZE, image }, new THREE.MeshBasicMaterial());
+                threeLayer.addMesh(terrain);
+                terrains.push(terrain);
+                bboxs.push(bbox);
+            });
+            addHelper();
+            addTube();
+
+        }
+
+        function addHelper() {
+            const bbox = calBBox(bboxs);
+            const extent = new maptalks.Extent(bbox);
+            const v = threeLayer.coordinateToVector3(extent.getCenter());
+            const axesHelper1 = new THREE.AxesHelper(200);
+            axesHelper1.position.copy(v);
+            // threeLayer.addMesh(axesHelper1);
+        }
+
+
+        function calBBox() {
+            let minx = Infinity, miny = Infinity, maxx = -Infinity, maxy = -Infinity;
+            bboxs.forEach(bbox => {
+                minx = Math.min(minx, bbox[0], bbox[2]);
+                miny = Math.min(miny, bbox[1], bbox[3]);
+                maxx = Math.max(maxx, bbox[2], bbox[0]);
+                maxy = Math.max(maxy, bbox[3], bbox[1]);
+            });
+            // const coordinates = [
+            //     [
+            //         [minx, miny],
+            //         [minx, maxy],
+            //         [maxx, maxy],
+            //         [maxx, miny]
+            //     ]
+            // ];
+            // const polygon = new maptalks.Polygon(coordinates);
+            // const layer = new maptalks.VectorLayer('layer').addTo(map);
+            // polygon.addTo(layer);
+
+            // const geojson = {
+            //     type: 'FeatureCollection',
+            //     features: [polygon.toGeoJSON()]
+            // };
+            // console.log(JSON.stringify(geojson));
+            return [minx, miny, maxx, maxy];
+        }
+
+        function addTube() {
+            fetch('./data/tubedata.geojson').then(res => res.json()).then(geojson => {
+                const lines = maptalks.GeoJSON.toGeometry(geojson);
+                tubes = lines.map(line => {
+                    const coordinates = line.getCoordinates().forEach(c => {
+                        c.z = tubeAltitude;
+                    })
+                    const tube = new Tube(line, { radius: tubeRadius, radialSegments: 50 }, new THREE.MeshLambertMaterial({ side: 2, color: tubeColor }), threeLayer);
+                    return tube;
+                });
+                threeLayer.addMesh(tubes);
+                createClipPanels(clipBuffer);
+            })
+        }
+
+
+        function createClipPanels(clipBuffer) {
+            const bbox = calBBox(bboxs);
+            const [minx, miny, maxx, maxy] = bbox;
+            const vymin = threeLayer.coordinateToVector3([(minx + maxx) / 2, miny]);
+            const buffer = threeLayer.distanceToVector3(clipBuffer, clipBuffer).x;
+
+            // const vymax = threeLayer.coordinateToVector3([(minx + maxx) / 2, maxy]);
+            // console.log(vymax);
+
+            // const extent = new maptalks.Extent(bbox);
+            // const vc = threeLayer.coordinateToVector3(extent.getCenter());
+
+            const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -(Math.abs(vymin.y) + buffer));
+            clipPlanes = [plane];
+            // const plane1 = new THREE.Plane(new THREE.Vector3(0, -1, 0), (Math.abs(vymax.y) - buffer));
+            // const helper = new THREE.PlaneHelper(plane, 233, 0xffff00);
+            // helper.position.copy(vc);
+            // threeLayer.addMesh(helper);
+
+            function updateClipPlanePosition() {
+                const v = threeLayer.coordinateToVector3([minx / 2 + maxx / 2, miny]);
+                v.y += buffer;
+                clipPlane.position.x = v.x;
+                clipPlane.position.y = v.y;
+            }
+            if (!clipPlane) {
+                const v1 = threeLayer.coordinateToVector3([minx, miny]), v2 = threeLayer.coordinateToVector3([maxx, miny]);
+                const w = Math.abs(v1.x - v2.x);
+                const h = 30;
+                const geometry = new THREE.PlaneGeometry(w, h, 20, 20);
+                geometry.rotateX(Math.PI / 2);
+                const material = new THREE.MeshBasicMaterial({ wireframe: true });
+                clipPlane = new THREE.Mesh(geometry, material);
+                // textureLoader.load('./data/nitu.jpg', (texture) => {
+                //     material.map = texture;
+                // });
+                updateClipPlanePosition();
+                clipPlane.position.z = h / 2;
+                clipPlane.visible = false;
+            }
+            updateClipPlanePosition();
+
+        }
+
+        function clipTubes(clip) {
+            if (clip) {
+                threeLayer.addMesh(clipPlane);
+            } else {
+                threeLayer.removeMesh(clipPlane)
+            }
+            tubes.concat(terrains).forEach(tube => {
+                tube.getObject3d().material.clippingPlanes = clip ? clipPlanes : [];
+                tube.getObject3d().material.clipIntersection = true;
+                tube.getObject3d().material.needsUpdate = true;
+
+            });
+        }
+
+        const sceneConfig = {
+            postProcess: {
+                enable: true,
+                antialias: { enable: true }
+            }
+        };
+        const groupLayer = new maptalks.GroupGLLayer('group', [threeLayer], { sceneConfig });
+        groupLayer.addTo(map);
+
+        function animation() {
+            // layer animation support Skipping frames
+            threeLayer._needsUpdate = !threeLayer._needsUpdate;
+            if (threeLayer._needsUpdate && !threeLayer.isRendering()) {
+                threeLayer.redraw();
+            }
+            stats.update();
+            requestAnimationFrame(animation);
+
+        }
+
+
+        function initGui() {
+            var params = {
+                clip: false,
+                clipBuffer: clipBuffer,
+                clipPlane: false,
+                clipPlaneColor: '#fff',
+                baseLayer: baseLayer.isVisible(),
+                terrains: true,
+                tubes: true,
+                tubeColor: tubeColor,
+                // add: true,
+                // color: 0x00ffff,
+                // show: true,
+                // opacity: 1,
+                altitude: 0
+            };
+            var gui = new dat.GUI();
+            gui.add(params, 'baseLayer').onChange(function () {
+                baseLayer[params.baseLayer ? 'show' : 'hide']();
+            });
+            gui.add(params, 'clip').onChange(function () {
+                clipTubes(params.clip);
+            });
+            gui.add(params, 'clipBuffer', 0, 2000).onChange(function () {
+                createClipPanels(params.clipBuffer);
+                clipTubes(params.clip);
+            });
+            gui.add(params, 'clipPlane').onChange(function () {
+                clipPlane.visible = params.clipPlane;
+            });
+            gui.addColor(params, 'clipPlaneColor').onChange(function () {
+                if (clipPlane) {
+                    clipPlane.material.color.setStyle(params.clipPlaneColor);
+                }
+            });
+
+            gui.add(params, 'terrains').onChange(function () {
+                if (params.terrains) {
+                    threeLayer.addMesh(terrains);
+                } else {
+                    threeLayer.removeMesh(terrains);
+                }
+            });
+            gui.add(params, 'tubes').onChange(function () {
+                if (params.tubes) {
+                    threeLayer.addMesh(tubes);
+                } else {
+                    threeLayer.removeMesh(tubes);
+                }
+            });
+            gui.addColor(params, 'tubeColor').onChange(function () {
+                tubes.forEach(function (tube) {
+                    tube.getObject3d().material.color.setStyle(params.tubeColor);
+                });
+            });
+        }
+
+
+        //default values
+        var OPTIONS = {
+            radius: 5,
+            altitude: 0,
+            radialSegments: 10
+        };
+
+        class Tube extends maptalks.BaseObject {
+            constructor(lineString, options, material, layer) {
+                const center = lineString.getCenter();
+                options = maptalks.Util.extend({}, OPTIONS, options, { layer, lineString, coordinates: center });
+                super();
+                //Initialize internal configuration
+                // https://github.com/maptalks/maptalks.three/blob/1e45f5238f500225ada1deb09b8bab18c1b52cf2/src/BaseObject.js#L135
+                this._initOptions(options);
+                const { altitude, radius } = options;
+                const centerPt = layer.coordinateToVector3(center);
+                const pts = lineString.getCoordinates().map(c => {
+                    const pt = layer.coordinateToVector3(c);
+                    pt.sub(centerPt);
+                    const altitude = c.z;
+                    if (altitude) {
+                        pt.z = layer.altitudeToVector3(altitude).x;
+                    }
+                    return pt;
+                })
+                const curve = new THREE.CatmullRomCurve3(pts);
+
+                // const points = curve.getPoints(pts.length);
+                //generate geometry
+                const r = layer.distanceToVector3(radius, radius).x;
+                const geometry = new THREE.TubeGeometry(curve, pts.length * 10, r, options.radialSegments, false);
+
+                //Initialize internal object3d
+                // https://github.com/maptalks/maptalks.three/blob/1e45f5238f500225ada1deb09b8bab18c1b52cf2/src/BaseObject.js#L140
+                this._createMesh(geometry, material);
+
+                //set object3d position
+                const z = layer.altitudeToVector3(altitude, altitude).x;
+                centerPt.z = z;
+                this.getObject3d().position.copy(centerPt);
+                // this.getObject3d().rotation.x = -Math.PI;
+            }
+
+
+
+        }
+
+
+    </script>
+</body>
+
+</html>
