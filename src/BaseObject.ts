@@ -10,7 +10,8 @@ const OPTIONS = {
     minZoom: 0,
     maxZoom: 30,
     asynchronous: false,
-    bloom: false
+    bloom: false,
+    pickWeight: -1
 };
 
 /**
@@ -374,12 +375,12 @@ class BaseObject extends maptalks.Eventable(Base) {
     }
 
     openToolTip(coordinate) {
-        coordinate = coordinate || this.getCenter();
-        if (!(coordinate instanceof maptalks.Coordinate)) {
-            coordinate = new maptalks.Coordinate(coordinate);
-        }
+        // coordinate = coordinate || this.getCenter();
+        // if (!(coordinate instanceof maptalks.Coordinate)) {
+        //     coordinate = new maptalks.Coordinate(coordinate);
+        // }
         // eslint-disable-next-line no-unused-expressions
-        (coordinate && this.toolTip && this.toolTip.show(coordinate));
+        // (coordinate && this.toolTip && this.toolTip.show(coordinate));
         return this;
     }
 

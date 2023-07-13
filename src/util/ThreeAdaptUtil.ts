@@ -1,4 +1,3 @@
-
 import * as THREE from 'three';
 
 /**
@@ -30,10 +29,32 @@ export function setRaycasterLinePrecision(raycaster: THREE.Raycaster, linePrecis
     }
 }
 
-export function getVertexColors(): number | boolean {
-    if (THREE['VertexColors']) {
-        return 2;
-    }
-    return true;
+function getThreeNameSpace() {
+    const three: any = THREE;
+    return three;
+}
 
+function _getThreeVertexColors(threeNameSpace) {
+    if (threeNameSpace['VertexColors']) {
+        return threeNameSpace['VertexColors'];
+    }
+    return 2;
+}
+export function getVertexColors(): number | boolean {
+    // const vertexColors = THREE?.['VertexColors'] ?? false
+    // if (vertexColors) {
+    //     return vertexColors;
+    // }
+    // return true;
+    return _getThreeVertexColors(getThreeNameSpace());
+
+}
+
+export function getBoxGeometry(width: number, height: number, depth: number) {
+    const three = getThreeNameSpace();
+    if (three.BoxBufferGeometry) {
+        return new three.BoxBufferGeometry(width, height, depth);
+    } else if (three.BoxGeometry) {
+        return new three.BoxGeometry(width, height, depth);
+    }
 }
