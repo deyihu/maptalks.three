@@ -78,7 +78,7 @@ const basePlugins = [
 //     removeGlobal()
 // ];
 
-module.exports = [
+let bundleList = [
     {
         input: 'src/index.ts',
         plugins: basePlugins,
