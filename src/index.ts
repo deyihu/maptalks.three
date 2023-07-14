@@ -955,7 +955,7 @@ class ThreeLayer extends maptalks.CanvasLayer {
         return (maptalks.Util.isNumber(count) && count > 0 ? pickResult.slice(0, count) : baseObjects);
     }
 
-    identifyAtPoint(point:maptalks.Point, options = {}) {
+    identifyAtPoint(point, options = {}) {
         const map = this.getMap();
         if (!map) {
             return [];
