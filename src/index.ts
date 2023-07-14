@@ -955,6 +955,15 @@ class ThreeLayer extends maptalks.CanvasLayer {
         return (maptalks.Util.isNumber(count) && count > 0 ? pickResult.slice(0, count) : baseObjects);
     }
 
+    identifyAtPoint(point:maptalks.Point, options = {}) {
+        const map = this.getMap();
+        if (!map) {
+            return [];
+        }
+        const coordinate = map.containerPointToCoordinate(point);
+        return this.identify(coordinate, options);
+    }
+
     /**
     * Recursively finding the root node of mesh,Until it is scene node
     * @param {*} mesh
