@@ -193,25 +193,20 @@ class ThreeLayer extends maptalks.CanvasLayer {
      * @param {Number} [z=0] z value
      * @return {THREE.Vector3}
      */
-    coordinateToVector3(coordinate: maptalks.Coordinate | Array<number>, z: number = 0, out?: THREE.Vector3, enableHeight?: boolean): THREE.Vector3 {
+    coordinateToVector3(coordinate: maptalks.Coordinate | Array<number>, z: number = 0, out?: THREE.Vector3): THREE.Vector3 {
         const map = this.getMap();
         if (!map) {
             return null;
         }
         const isArray = Array.isArray(coordinate);
-        let height = (coordinate as any).z;
         if (isArray) {
             TEMP_COORD.x = coordinate[0];
             TEMP_COORD.y = coordinate[1];
-            height = coordinate[2];
         } else if (!(coordinate instanceof maptalks.Coordinate)) {
             coordinate = new maptalks.Coordinate(coordinate);
-            height = (coordinate as any).z;
         }
         const res = getGLRes(map);
         const p = coordinateToPoint(map, isArray ? TEMP_COORD : coordinate, res, TEMP_POINT);
-        height = this._transformHeight(enableHeight, height);
-        z += height;
         if (out) {
             out.x = p.x;
             out.y = p.y;
@@ -220,7 +215,7 @@ class ThreeLayer extends maptalks.CanvasLayer {
         return new THREE.Vector3(p.x, p.y, z);
     }
 
-    coordinatiesToGLFloatArray(coordinaties: Array<maptalks.Coordinate | Array<number>>, centerPt: THREE.Vector3, enableHeight?: boolean): {
+    coordinatiesToGLFloatArray(coordinaties: Array<maptalks.Coordinate | Array<number>>, centerPt: THREE.Vector3, hasHeight?: boolean): {
         positions: Float32Array,
         positons2d: Float32Array
     } {
@@ -232,17 +227,15 @@ class ThreeLayer extends maptalks.CanvasLayer {
         const len = coordinaties.length;
         const array = new Float32Array(len * 2);
         const array3d = new Float32Array(len * 3);
+        const heightCache = new Map();
         for (let i = 0; i < len; i++) {
             let coordinate = coordinaties[i];
             const isArray = Array.isArray(coordinate);
-            let height = (coordinate as any).z;
             if (isArray) {
                 TEMP_COORD.x = coordinate[0];
                 TEMP_COORD.y = coordinate[1];
-                height = coordinate[2];
             } else if (!(coordinate instanceof maptalks.Coordinate)) {
                 coordinate = new maptalks.Coordinate(coordinate);
-                height = (coordinate as any).z;
             }
             const p = coordinateToPoint(map, isArray ? TEMP_COORD : coordinate, res, TEMP_POINT);
             p.x -= centerPt.x;
@@ -251,7 +244,16 @@ class ThreeLayer extends maptalks.CanvasLayer {
             array[idx] = p.x;
             array[idx + 1] = p.y;
 
-            const z = this._transformHeight(enableHeight, height);
+            const coord = (coordinate as any);
+            let height = coord.z || coord[2] || 0;
+            if (!heightCache.has(height) && hasHeight) {
+                const z = this._transformHeight(hasHeight, height);
+                heightCache.set(height, z);
+            }
+            let z = 0;
+            if (hasHeight) {
+                z = heightCache.get(height) || 0;
+            }
             const idx1 = i * 3
             array3d[idx1] = p.x;
             array3d[idx1 + 1] = p.y;

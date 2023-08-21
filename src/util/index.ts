@@ -90,13 +90,13 @@ export function getGeometriesColorArray(geometriesAttributes): Float32Array {
 }
 
 const TEMP_POINT = new THREE.Vector3();
-const heightMap = new Map();
+const heightCache = new Map();
 export function coordiantesToArrayBuffer(coordiantes = [], layer?: ThreeLayer): ArrayBuffer {
     const len = coordiantes.length;
     const hasHeight = !!layer;
     const dimensional = hasHeight ? 3 : 2;
     const array = new Float64Array(len * dimensional);
-    heightMap.clear();
+    heightCache.clear();
     for (let i = 0; i < len; i++) {
         let x, y;
         const c = coordiantes[i];
@@ -114,11 +114,11 @@ export function coordiantesToArrayBuffer(coordiantes = [], layer?: ThreeLayer): 
         array[i * dimensional + 1] = y;
         height = height || 0;
         if (hasHeight && height !== 0) {
-            if (!heightMap.has(height)) {
-                height = layer.altitudeToVector3(height, height, null, TEMP_POINT).x;
-                heightMap.set(height, height);
-            } 
-            array[i * dimensional + 2] = heightMap.get(height);
+            if (!heightCache.has(height)) {
+                const z = layer.altitudeToVector3(height, height, null, TEMP_POINT).x;
+                heightCache.set(height, z);
+            }
+            array[i * dimensional + 2] = heightCache.get(height);
         }
     }
     return array.buffer;

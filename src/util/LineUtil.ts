@@ -7,7 +7,8 @@ import { ThreeLayer } from './../index';
 import { GeoJSONLineStringFeature, LineStringType, MergeAttributeType, SingleLineStringType } from './../type/index';
 import { coordiantesToArrayBuffer } from '.';
 const COMMA = ',';
-
+const heightCache = new Map();
+const TEMP_POINT = new THREE.Vector3();
 /**
  *
  * @param {maptalks.LineString} lineString
@@ -44,10 +45,16 @@ export function getLinePosition(lineString: SingleLineStringType | Array<THREE.V
         }
         const centerPt = layer.coordinateToVector3(center || cent);
         if (hasVectorArray) {
+            heightCache.clear();
             for (let i = 0, len = coordinates.length; i < len; i++) {
                 const coordinate = coordinates[i];
-                const v = layer.coordinateToVector3(coordinate, z, null, true).sub(centerPt);
-                // positions.push(v.x, v.y, v.z);
+                const height = coordinate.z || coordinate[2] || 0;
+                if (!heightCache.has(height)) {
+                    const vz = layer.altitudeToVector3(height, height, null, TEMP_POINT).x;
+                    heightCache.set(height, vz);
+                }
+                const v = layer.coordinateToVector3(coordinate, z).sub(centerPt);
+                v.z += (heightCache.get(height) || 0);
                 positionsV.push(v);
             }
         } else {
