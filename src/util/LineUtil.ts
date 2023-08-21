@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { extrudePolylines } from 'poly-extrude';
+import { extrudePolylines, expandPaths } from 'poly-extrude';
 import { isGeoJSON, getGeoJSONCoordinates, getGeoJSONCenter, isGeoJSONMulti, spliteGeoJSONMulti, isGeoJSONLine } from './GeoJSONUtil';
 import { addAttribute } from './ThreeAdaptUtil';
 import { ThreeLayer } from './../index';
@@ -7,6 +7,8 @@ import { GeoJSONLineStringFeature, LineStringType, MergeAttributeType, SingleLin
 import maptalks from './../MTK';
 import { coordiantesToArrayBuffer } from '.';
 const COMMA = ',';
+const heightCache = new Map();
+const TEMP_VECTOR3 = new THREE.Vector3();
 
 /**
  *
@@ -44,14 +46,20 @@ export function getLinePosition(lineString: SingleLineStringType | Array<THREE.V
         }
         const centerPt = layer.coordinateToVector3(center || cent);
         if (hasVectorArray) {
+            heightCache.clear();
             for (let i = 0, len = coordinates.length; i < len; i++) {
                 const coordinate = coordinates[i];
+                const height = coordinate.z || coordinate[2] || 0;
+                if (!heightCache.has(height)) {
+                    const vz = layer.altitudeToVector3(height, height, null, TEMP_VECTOR3).x;
+                    heightCache.set(height, vz);
+                }
                 const v = layer.coordinateToVector3(coordinate, z).sub(centerPt);
-                // positions.push(v.x, v.y, v.z);
+                v.z += (heightCache.get(height) || 0);
                 positionsV.push(v);
             }
         } else {
-            const result = layer.coordinatiesToGLFloatArray(coordinates, centerPt);
+            const result = layer.coordinatiesToGLFloatArray(coordinates, centerPt, true);
             positions = result.positions;
             positions2d = result.positons2d;
         }
@@ -61,7 +69,7 @@ export function getLinePosition(lineString: SingleLineStringType | Array<THREE.V
             positions,
             positionsV,
             positions2d,
-            arrayBuffer: positions2d.buffer
+            arrayBuffer: positions.buffer
         }
     }
     positions2d = new Float32Array(positionsV.length * 2);
@@ -81,7 +89,7 @@ export function getLinePosition(lineString: SingleLineStringType | Array<THREE.V
         positions,
         positionsV,
         positions2d,
-        arrayBuffer: positions2d.buffer
+        arrayBuffer: positions.buffer
     };
 }
 
@@ -185,7 +193,7 @@ export function getExtrudeLineParams(lineString: SingleLineStringType | Array<TH
     const ps = [];
     for (let i = 0, len = positions.length; i < len; i++) {
         const p = positions[i];
-        ps.push([p.x, p.y]);
+        ps.push([p.x, p.y, p.z]);
     }
     const {
         indices,
@@ -195,6 +203,38 @@ export function getExtrudeLineParams(lineString: SingleLineStringType | Array<TH
     } = extrudePolylines([ps], {
         lineWidth: lineWidth,
         depth: depth
+    });
+    return {
+        position: position,
+        normal: normal,
+        indices: indices,
+        uv
+    };
+}
+
+/**
+ *
+ * @param {*} lineString
+ * @param {*} lineWidth
+ * @param {*} cornerRadius
+ * @param {*} layer
+ */
+export function getPathParams(lineString: SingleLineStringType | Array<THREE.Vector3>,
+    lineWidth = 1, cornerRadius = 1, layer: ThreeLayer, center?): MergeAttributeType {
+    const positions = getLinePosition(lineString, layer, center).positionsV;
+    const ps = [];
+    for (let i = 0, len = positions.length; i < len; i++) {
+        const p = positions[i];
+        ps.push([p.x, p.y, p.z]);
+    }
+    const {
+        indices,
+        position,
+        normal,
+        uv
+    } = expandPaths([ps], {
+        lineWidth: lineWidth,
+        cornerRadius: cornerRadius
     });
     return {
         position: position,
@@ -276,11 +316,11 @@ export function mergeLinePositions(positionsList: Array<Float32Array>): Float32A
 
 }
 
-export function getLineArrayBuffer(lineString: SingleLineStringType): ArrayBuffer {
+export function getLineArrayBuffer(lineString: SingleLineStringType, layer: ThreeLayer): ArrayBuffer {
     if (lineString instanceof maptalks.LineString) {
-        return coordiantesToArrayBuffer(lineString.getCoordinates());
+        return coordiantesToArrayBuffer(lineString.getCoordinates(), layer);
     } else if (isGeoJSONLine(lineString)) {
-        return coordiantesToArrayBuffer(lineString.geometry.coordinates);
+        return coordiantesToArrayBuffer(lineString.geometry.coordinates, layer);
     }
 }
 

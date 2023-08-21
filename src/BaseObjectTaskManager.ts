@@ -91,8 +91,13 @@ export class BaseObjectTask {
             const { id } = result;
             if (this.queueMap[id]) {
                 const { baseObject } = this.queueMap[id];
-                if (baseObject && baseObject.options && baseObject._workerLoad) {
-                    baseObject._workerLoad(result);
+                if (baseObject && baseObject._workerLoad) {
+                    const layer = baseObject.getLayer();
+                    if (layer) {
+                        baseObject._workerLoad(result);
+                    } else {
+                        console.warn(baseObject, ' worker Processing completed but removed from the layer');
+                    }
                 }
                 delete this.queueMap[id];
             }
@@ -141,6 +146,7 @@ class ExtrudePolygonsTask extends BaseObjectTask {
                     data: queue.data,
                     key: queue.key,
                     center: queue.center,
+                    baseOptions: queue.option,
                     callback: (result) => {
                         this.pushResult(result);
                     }
@@ -195,6 +201,7 @@ class ExtrudeLinesTask extends BaseObjectTask {
                     key: queue.key,
                     lineStrings: queue.lineStrings,
                     center: queue.center,
+                    baseOptions: queue.option,
                     callback: (result) => {
                         this.pushResult(result);
                     }
@@ -247,6 +254,7 @@ class LinesTask extends BaseObjectTask {
                     key: queue.key,
                     lineStrings: queue.lineStrings,
                     center: queue.center,
+                    baseOptions: queue.option,
                     callback: (result) => {
                         this.pushResult(result);
                     }
@@ -300,6 +308,7 @@ class FatLinesTask extends BaseObjectTask {
                     key: queue.key,
                     lineStrings: queue.lineStrings,
                     center: queue.center,
+                    baseOptions: queue.option,
                     callback: (result) => {
                         this.pushResult(result);
                     }
@@ -359,6 +368,61 @@ class BarsTask extends BaseObjectTask {
         super.loop();
     }
 }
+
+
+class PathTask extends BaseObjectTask {
+    constructor() {
+        super();
+        this.deQueueCount = 100;
+    }
+
+    loop(): void {
+        const t = this.getCurrentTime();
+        if ((t - this.time >= 32 || this.tempQueue.length >= 1000) && this.tempQueue.length) {
+            const actor = getActor();
+            (actor as any).pushQueue({
+                type: 'Path',
+                layer: this.tempQueue[0].layer,
+                data: getDatas(this.tempQueue),
+                options: getOptions(this.tempQueue),
+                lineStrings: this.tempQueue.map(q => {
+                    return q.lineString;
+                }),
+                callback: (result) => {
+                    this.pushResult(result);
+                }
+            });
+            this.reset();
+        }
+        super.loop();
+    }
+}
+
+class PathsTask extends BaseObjectTask {
+
+    loop(): void {
+        if (this.tempQueue.length) {
+            const actor = getActor();
+            this.tempQueue.forEach(queue => {
+                (actor as any).pushQueue({
+                    id: queue.id,
+                    type: 'Paths',
+                    layer: queue.layer,
+                    data: queue.data,
+                    key: queue.key,
+                    lineStrings: queue.lineStrings,
+                    center: queue.center,
+                    baseOptions: queue.option,
+                    callback: (result) => {
+                        this.pushResult(result);
+                    }
+                });
+            });
+            this.reset();
+        }
+        super.loop();
+    }
+}
 export const ExtrudePolygonTaskIns = new ExtrudePolygonTask();
 export const ExtrudePolygonsTaskIns = new ExtrudePolygonsTask();
 export const ExtrudeLineTaskIns = new ExtrudeLineTask();
@@ -369,6 +433,8 @@ export const FatLineTaskIns = new FatLineTask();
 export const FatLinesTaskIns = new FatLinesTask();
 export const BarTaskIns = new BarTask();
 export const BarsTaskIns = new BarsTask();
+export const PathTaskIns = new PathTask();
+export const PathsTaskIns = new PathsTask();
 
 export const BaseObjectTaskManager = {
     isRunning: false,
@@ -392,6 +458,8 @@ export const BaseObjectTaskManager = {
         FatLinesTaskIns.loop();
         BarTaskIns.loop();
         BarsTaskIns.loop();
+        PathTaskIns.loop();
+        PathsTaskIns.loop();
         BaseObjectTaskManager.tasks.forEach(taskIns => {
             if (taskIns && taskIns.loop) {
                 taskIns.loop();

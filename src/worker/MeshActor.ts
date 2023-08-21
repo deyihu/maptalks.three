@@ -1,10 +1,10 @@
-import { isGeoJSONLine, isGeoJSONPolygon } from '../util/GeoJSONUtil';
 import { getPolygonArrayBuffer, getPolygonPositions } from '../util/ExtrudeUtil';
 // import pkg from './../../package.json';
 import { getLineArrayBuffer, getLinePosition } from '../util/LineUtil';
 import { LineStringType, PolygonType, SingleLineStringType } from './../type/index';
 import { ThreeLayer } from './../index';
 import { getWorkerName } from './worker';
+import { getLineStringProperties, getPolygonProperties } from 'src/util';
 import maptalks from './../MTK';
 
 let MeshActor;
@@ -16,25 +16,25 @@ if (maptalks.worker) {
         }
 
         pushQueue(q: any = {}) {
-            const { type, data, callback, layer, key, center, lineStrings, options, id } = q;
+            const { type, data, callback, layer, key, center, lineStrings, options, id, baseOptions } = q;
             let params;
             if (type.indexOf('ExtrudePolygon') > -1) {
-                params = gengerateExtrudePolygons(data, center, layer, options);
-            } else if (type === 'ExtrudeLines') {
-                params = gengerateExtrudeLines(data, center, layer, lineStrings);
+                params = gengerateExtrudePolygons(data, center, layer, options, baseOptions);
+            } else if (type === 'ExtrudeLines' || type === 'Paths') {
+                params = gengerateExtrudeLines(data, center, layer, lineStrings, options, baseOptions);
             } else if (type === 'Point') {
                 //todo points
             } else if (type === 'Line' || type === 'FatLine') {
-                params = gengerateLines(data, center, layer, lineStrings, options);
+                params = gengerateLines(data, center, layer, lineStrings, options, baseOptions);
             } else if (type === 'Lines' || type === 'FatLines') {
-                params = gengerateLines(data, center, layer, lineStrings);
-            } else if (type === 'ExtrudeLine') {
-                params = gengerateExtrudeLines(data, center, layer, lineStrings, options);
+                params = gengerateLines(data, center, layer, lineStrings, options, baseOptions);
+            } else if (type === 'ExtrudeLine' || type === 'Path') {
+                params = gengerateExtrudeLines(data, center, layer, lineStrings, options, baseOptions);
             } else if (type === 'Bar' || type === 'Bars') {
                 params = generateBars(data);
             }
             if (!params) {
-                console.error(`not support '${type}' worker`);
+                console.error(`No processing logic found for type:${type}`);
                 return;
             }
             this.send({ type, datas: params.datas, glRes: params.glRes, matrix: params.matrix, center: params.center },
@@ -93,12 +93,20 @@ function getAltitude(altitude: number, layer: ThreeLayer, altCache = {}) {
     }
     return 0;
 }
+
+function mergeOptions(properties, baseOptions) {
+    if (!baseOptions) {
+        return properties || {};
+    }
+    return Object.assign({}, baseOptions, properties);
+}
+
 /**
  * generate extrudepolygons data for worker
  * @param {*} polygons
  * @param {*} layer
  */
-function gengerateExtrudePolygons(polygons: PolygonType[] = [], center: any, layer: ThreeLayer, options: Array<any> = []) {
+function gengerateExtrudePolygons(polygons: PolygonType[] = [], center, layer: ThreeLayer, options: Array<any> = [], baseOptions?: any) {
     const isMercator = layer.isMercator();
     let glRes, matrix;
     if (isMercator) {
@@ -115,7 +123,8 @@ function gengerateExtrudePolygons(polygons: PolygonType[] = [], center: any, lay
     for (let i = 0; i < len; i++) {
         const polygon = polygons[i];
         const p = (polygon as any);
-        const properties = options[i] ? options[i] : (isGeoJSONPolygon(p) ? p['properties'] : p.getProperties() || {});
+        let properties = options[i] ? options[i] : getPolygonProperties(p);
+        properties = mergeOptions(properties, baseOptions);
         if (!center) {
             if (!properties || !properties.center) {
                 continue;
@@ -169,7 +178,8 @@ function gengerateExtrudePolygons(polygons: PolygonType[] = [], center: any, lay
  * @param {*} center
  * @param {*} layer
  */
-function gengerateExtrudeLines(lineStringList: Array<Array<SingleLineStringType>>, center: any, layer: ThreeLayer, lineStrings: Array<LineStringType>, options: Array<any> = []) {
+function gengerateExtrudeLines(lineStringList: Array<Array<SingleLineStringType>>, center, layer: ThreeLayer,
+    lineStrings: Array<LineStringType>, options: Array<any> = [], baseOptions?: any) {
     const isMercator = layer.isMercator();
     let glRes, matrix;
     if (isMercator) {
@@ -185,7 +195,8 @@ function gengerateExtrudeLines(lineStringList: Array<Array<SingleLineStringType>
     const len = lineStringList.length;
     for (let i = 0; i < len; i++) {
         const multiLineString = lineStringList[i];
-        const properties = options[i] ? options[i] : (isGeoJSONLine(lineStrings[i] as any) ? lineStrings[i]['properties'] : (lineStrings[i] as any).getProperties() || {});
+        let properties = options[i] ? options[i] : getLineStringProperties(lineStrings[i]);
+        properties = mergeOptions(properties, baseOptions);
         if (!center) {
             if (!properties || !properties.center) {
                 continue;
@@ -194,8 +205,10 @@ function gengerateExtrudeLines(lineStringList: Array<Array<SingleLineStringType>
         }
         let width = properties.width || 1;
         let height = properties.height || 1;
+        let cornerRadius = properties.cornerRadius || 0;
         let bottomHeight = properties.bottomHeight || 0;
         width = getDistance(width, layer, cache);
+        cornerRadius = getDistance(cornerRadius, layer, cache);
         height = getAltitude(height, layer, altCache);
         bottomHeight = getAltitude(bottomHeight, layer, altCache);
         const data = [];
@@ -203,7 +216,7 @@ function gengerateExtrudeLines(lineStringList: Array<Array<SingleLineStringType>
             const lineString = multiLineString[j];
             let arrayBuffer: ArrayBuffer;
             if (isMercator) {
-                arrayBuffer = getLineArrayBuffer(lineString);
+                arrayBuffer = getLineArrayBuffer(lineString, layer);
             } else {
                 arrayBuffer = getLinePosition(lineString, layer, center, false).arrayBuffer;
             }
@@ -215,6 +228,7 @@ function gengerateExtrudeLines(lineStringList: Array<Array<SingleLineStringType>
             data,
             height,
             width,
+            cornerRadius,
             bottomHeight
         };
         if (isMercator) {
@@ -240,7 +254,8 @@ function gengerateExtrudeLines(lineStringList: Array<Array<SingleLineStringType>
  * @param options 
  * @returns 
  */
-function gengerateLines(lineStringList: Array<Array<SingleLineStringType>>, center: any, layer: ThreeLayer, lineStrings: Array<LineStringType>, options: Array<any> = []) {
+function gengerateLines(lineStringList: Array<Array<SingleLineStringType>>, center, layer: ThreeLayer,
+    lineStrings: Array<LineStringType>, options: Array<any> = [], baseOptions?: any) {
     const isMercator = layer.isMercator();
     let glRes, matrix;
     if (isMercator) {
@@ -256,7 +271,8 @@ function gengerateLines(lineStringList: Array<Array<SingleLineStringType>>, cent
     const len = lineStringList.length;
     for (let i = 0; i < len; i++) {
         const multiLineString = lineStringList[i];
-        const properties = options[i] ? options[i] : (isGeoJSONLine(lineStrings[i] as any) ? lineStrings[i]['properties'] : (lineStrings[i] as any).getProperties() || {});
+        let properties = options[i] ? options[i] : getLineStringProperties(lineStrings[i]);
+        properties = mergeOptions(properties, baseOptions);
         if (!center) {
             if (!properties || !properties.center) {
                 continue;
@@ -269,8 +285,8 @@ function gengerateLines(lineStringList: Array<Array<SingleLineStringType>>, cent
         for (let j = 0, len1 = multiLineString.length; j < len1; j++) {
             const lineString = multiLineString[j];
             if (isMercator) {
-                const arrayBuffer = getLineArrayBuffer(lineString);
-                data.push(arrayBuffer);
+                const arrayBuffer = getLineArrayBuffer(lineString, layer);
+                transfer.push(arrayBuffer);
                 data.push(arrayBuffer);
             } else {
                 const arrayBuffer = getLinePosition(lineString, layer, center, false).arrayBuffer;
