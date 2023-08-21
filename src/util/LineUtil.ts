@@ -46,12 +46,12 @@ export function getLinePosition(lineString: SingleLineStringType | Array<THREE.V
         if (hasVectorArray) {
             for (let i = 0, len = coordinates.length; i < len; i++) {
                 const coordinate = coordinates[i];
-                const v = layer.coordinateToVector3(coordinate, z).sub(centerPt);
+                const v = layer.coordinateToVector3(coordinate, z, null, true).sub(centerPt);
                 // positions.push(v.x, v.y, v.z);
                 positionsV.push(v);
             }
         } else {
-            const result = layer.coordinatiesToGLFloatArray(coordinates, centerPt);
+            const result = layer.coordinatiesToGLFloatArray(coordinates, centerPt, true);
             positions = result.positions;
             positions2d = result.positons2d;
         }
@@ -61,7 +61,7 @@ export function getLinePosition(lineString: SingleLineStringType | Array<THREE.V
             positions,
             positionsV,
             positions2d,
-            arrayBuffer: positions2d.buffer
+            arrayBuffer: positions.buffer
         }
     }
     positions2d = new Float32Array(positionsV.length * 2);
@@ -81,7 +81,7 @@ export function getLinePosition(lineString: SingleLineStringType | Array<THREE.V
         positions,
         positionsV,
         positions2d,
-        arrayBuffer: positions2d.buffer
+        arrayBuffer: positions.buffer
     };
 }
 
@@ -185,7 +185,7 @@ export function getExtrudeLineParams(lineString: SingleLineStringType | Array<TH
     const ps = [];
     for (let i = 0, len = positions.length; i < len; i++) {
         const p = positions[i];
-        ps.push([p.x, p.y]);
+        ps.push([p.x, p.y, p.z]);
     }
     const {
         indices,
@@ -217,7 +217,7 @@ export function getPathParams(lineString: SingleLineStringType | Array<THREE.Vec
     const ps = [];
     for (let i = 0, len = positions.length; i < len; i++) {
         const p = positions[i];
-        ps.push([p.x, p.y]);
+        ps.push([p.x, p.y, p.z]);
     }
     const {
         indices,
@@ -308,11 +308,11 @@ export function mergeLinePositions(positionsList: Array<Float32Array>): Float32A
 
 }
 
-export function getLineArrayBuffer(lineString: SingleLineStringType): ArrayBuffer {
+export function getLineArrayBuffer(lineString: SingleLineStringType, layer: ThreeLayer): ArrayBuffer {
     if (lineString instanceof maptalks.LineString) {
-        return coordiantesToArrayBuffer(lineString.getCoordinates());
+        return coordiantesToArrayBuffer(lineString.getCoordinates(), layer);
     } else if (isGeoJSONLine(lineString)) {
-        return coordiantesToArrayBuffer(lineString.geometry.coordinates);
+        return coordiantesToArrayBuffer(lineString.geometry.coordinates, layer);
     }
 }
 
