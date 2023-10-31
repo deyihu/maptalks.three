@@ -1,6 +1,6 @@
 {
-  "name": "deyihu-maptalks.three",
-  "version": "0.37.1",
+  "name": "maptalks.three",
+  "version": "0.38.1",
   "description": "A maptalks Layer to render with THREE.js.",
   "license": "MIT",
   "repository": {

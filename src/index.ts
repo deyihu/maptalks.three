@@ -135,6 +135,7 @@ class ThreeLayer extends maptalks.CanvasLayer {
     _identifyBaseObjectEventsThis: Function;
     _zoomendThis: Function;
     _emptyIdentifyThis: Function;
+    _meshes: Array<BaseObject | THREE.Object3D> = [];
 
     constructor(id: string, options: BaseLayerOptionType) {
         super(id, options);
@@ -712,6 +713,7 @@ class ThreeLayer extends maptalks.CanvasLayer {
                 }
             }
         }
+        this._meshes = [];
         return this;
     }
 
@@ -831,6 +833,10 @@ class ThreeLayer extends maptalks.CanvasLayer {
             } else if (mesh instanceof THREE.Object3D) {
                 scene.add(mesh);
             }
+            const index = this._meshes.indexOf(mesh);
+            if (index === -1) {
+                this._meshes.push(mesh);
+            }
         });
         this._zoomend();
         if (render) {
@@ -875,6 +881,15 @@ class ThreeLayer extends maptalks.CanvasLayer {
                 }
             } else if (mesh instanceof THREE.Object3D) {
                 scene.remove(mesh);
+            }
+            for (let i = 0, len = this._meshes.length; i < len; i++) {
+                const object3d = this._meshes[i];
+                if (!object3d) {
+                    continue;
+                }
+                if (object3d === mesh) {
+                    this._meshes.splice(i, 1);
+                }
             }
         });
         if (render) {
@@ -1048,6 +1063,7 @@ class ThreeLayer extends maptalks.CanvasLayer {
         type = type || event.type;
         const e = this._getEventParams(event);
         const { coordinate } = (e as any);
+        const map = this.getMap();
         function showInfoWindow(baseObject: BaseObject, eventType?: string) {
             eventType = eventType || type;
             const infoWindow = baseObject.getInfoWindow();
@@ -1058,7 +1074,9 @@ class ThreeLayer extends maptalks.CanvasLayer {
             const infoOptions = infoWindow ? (infoWindow as any).options : {};
             const autoOpenOn = infoOptions['autoOpenOn'] || 'click';
             if (autoOpenOn === eventType) {
-                baseObject.openInfoWindow(coordinate);
+                if (!map.options.supportPluginEvent) {
+                    baseObject.openInfoWindow(coordinate);
+                }
                 baseObject.fire('showinfowindow', { infoWindow });
             }
         }
@@ -1370,7 +1388,12 @@ class ThreeLayer extends maptalks.CanvasLayer {
             this.off('identifyempty', this._emptyIdentifyThis);
         }
         map.off('zooming zoomend', this._zoomendThis, this);
-        this.clear();
+        // this.clear();
+        return this;
+    }
+
+    _addBaseObjectsWhenInit() {
+        this.addMesh(this._meshes);
         return this;
     }
 
@@ -1476,6 +1499,7 @@ class ThreeRenderer extends maptalks.renderer.CanvasLayerRenderer {
         scene.add(camera);
         this.pick = new GPUPick(this.layer);
         BaseObjectTaskManager.star();
+        this.layer._addBaseObjectsWhenInit();
     }
 
     onCanvasCreate() {

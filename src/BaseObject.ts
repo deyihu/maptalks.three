@@ -476,6 +476,10 @@ class BaseObject extends maptalks.Eventable(Base) {
         return this;
     }
 
+    getPickObject3d() {
+        return this.pickObject3d;
+    }
+
 
     bindTooltip(content, options) {
         return this.bindToolTip(content, options);
