@@ -3,10 +3,10 @@ import * as THREE from 'three';
 
 export type BaseLayerOptionType = {
     minZoom?: number;
-	maxZoom?: number;
-	visible?: boolean;
-	opacity?: number;
-	zIndex?: number;
+    maxZoom?: number;
+    visible?: boolean;
+    opacity?: number;
+    zIndex?: number;
     renderer?: 'gl',
     doubleBuffer?: boolean,
     glOptions?: {
@@ -60,7 +60,8 @@ export type ExtrudePolygonOptionType = BaseObjectOptionType & {
     bottomHeight?: number,
     topColor?: string,
     bottomColor?: string,
-    key?: string
+    key?: string,
+    top?: boolean
 }
 export type ExtrudeLineOptionType = BaseObjectOptionType & {
     bottomHeight?: number,
